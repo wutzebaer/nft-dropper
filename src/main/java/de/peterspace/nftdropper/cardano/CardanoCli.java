@@ -31,6 +31,10 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class CardanoCli {
 
+	private static final String TRANSACTION_UNSIGNED_FILENAME = "transaction.unsigned";
+	private static final String TRANSACTION_METADATA_JSON_FILENAME = "transactionMetadata.json";
+	private static final String TRANSACTION_SIGNED_FILENAME = "transaction.signed";
+
 	@Value("${network}")
 	private String network;
 
@@ -176,16 +180,12 @@ public class CardanoCli {
 	}
 
 	public String mint(List<TransactionInputs> transactionInputs, TransactionOutputs transactionOutputs, JSONObject metaData, String changeAddress, Address paymentAddress, Policy policy) throws Exception {
-		String metadataFilename = "transactionMetadata.json";
-		String unsignedFilename = "transaction.unsigned";
-		String signedFilename = "transaction.signed";
-
 		try {
 
-			buildTransaction(transactionInputs, transactionOutputs, metaData, changeAddress, policy, metadataFilename, unsignedFilename);
-			signTransaction(unsignedFilename, signedFilename);
-			String txId = getTransactionId(signedFilename);
-			submitTransaction(signedFilename);
+			buildTransaction(transactionInputs, transactionOutputs, metaData, changeAddress, policy);
+			signTransaction();
+			String txId = getTransactionId();
+			submitTransaction();
 			return txId;
 
 		} catch (Exception e) {
@@ -202,21 +202,21 @@ public class CardanoCli {
 
 	}
 
-	private void submitTransaction(String signedFilename) throws Exception {
+	private void submitTransaction() throws Exception {
 		ArrayList<String> cmd = new ArrayList<String>();
 		cmd.addAll(List.of(cardanoCliCmd));
 		cmd.add("transaction");
 		cmd.add("submit");
 
 		cmd.add("--tx-file");
-		cmd.add(signedFilename);
+		cmd.add(TRANSACTION_SIGNED_FILENAME);
 
 		cmd.addAll(List.of(networkMagicArgs));
 
 		ProcessUtil.runCommand(cmd.toArray(new String[0]));
 	}
 
-	private String getTransactionId(String signedFilename) throws Exception {
+	private String getTransactionId() throws Exception {
 		String txId;
 		{
 			ArrayList<String> cmd = new ArrayList<String>();
@@ -224,16 +224,14 @@ public class CardanoCli {
 			cmd.add("transaction");
 			cmd.add("txid");
 			cmd.add("--tx-file");
-			cmd.add(signedFilename);
+			cmd.add(TRANSACTION_SIGNED_FILENAME);
 			txId = ProcessUtil.runCommand(cmd.toArray(new String[0]));
 		}
 		return txId;
 	}
 
-	private void buildTransaction(List<TransactionInputs> transactionInputs, TransactionOutputs transactionOutputs, JSONObject metaData, String changeAddress, Policy policy, String metadataFilename, String unsignedFilename) throws Exception {
+	private void buildTransaction(List<TransactionInputs> transactionInputs, TransactionOutputs transactionOutputs, JSONObject metaData, String changeAddress, Policy policy) throws Exception {
 		{
-
-			fileUtil.writeFile(metadataFilename, metaData.toString(3));
 
 			ArrayList<String> cmd = new ArrayList<String>();
 			cmd.addAll(List.of(cardanoCliCmd));
@@ -260,15 +258,19 @@ public class CardanoCli {
 			for (Entry<String, Long> assetEntry : assetEntries) {
 				mints.add(String.format("%d %s", assetEntry.getValue(), assetEntry.getKey()));
 			}
-			cmd.add("--mint");
-			cmd.add(StringUtils.join(mints, "+"));
+			if (mints.size() > 0) {
+				cmd.add("--mint");
+				cmd.add(StringUtils.join(mints, "+"));
+				cmd.add("--minting-script-file");
+				cmd.add("policy.script");
+			}
 
-			cmd.add("--minting-script-file");
-			cmd.add("policy.script");
-
-			cmd.add("--json-metadata-no-schema");
-			cmd.add("--metadata-json-file");
-			cmd.add(metadataFilename);
+			if (metaData != null) {
+				fileUtil.writeFile(TRANSACTION_METADATA_JSON_FILENAME, metaData.toString(3));
+				cmd.add("--json-metadata-no-schema");
+				cmd.add("--metadata-json-file");
+				cmd.add(TRANSACTION_METADATA_JSON_FILENAME);
+			}
 
 			cmd.add("--change-address");
 			cmd.add(changeAddress);
@@ -277,7 +279,7 @@ public class CardanoCli {
 			cmd.add("--alonzo-era");
 
 			cmd.add("--out-file");
-			cmd.add(unsignedFilename);
+			cmd.add(TRANSACTION_UNSIGNED_FILENAME);
 
 			long maxSlot = new JSONObject(policy.getPolicy()).getJSONArray("scripts").getJSONObject(0).getLong("slot");
 			cmd.add("--invalid-hereafter");
@@ -288,7 +290,7 @@ public class CardanoCli {
 		}
 	}
 
-	private void signTransaction(String unsignedFilename, String signedFilename) throws Exception {
+	private void signTransaction() throws Exception {
 		{
 			ArrayList<String> cmd = new ArrayList<String>();
 			cmd.addAll(List.of(cardanoCliCmd));
@@ -301,10 +303,10 @@ public class CardanoCli {
 			cmd.addAll(List.of(networkMagicArgs));
 
 			cmd.add("--tx-body-file");
-			cmd.add("transaction.unsigned");
+			cmd.add(TRANSACTION_UNSIGNED_FILENAME);
 
 			cmd.add("--out-file");
-			cmd.add(signedFilename);
+			cmd.add(TRANSACTION_SIGNED_FILENAME);
 
 			ProcessUtil.runCommand(cmd.toArray(new String[0]));
 
