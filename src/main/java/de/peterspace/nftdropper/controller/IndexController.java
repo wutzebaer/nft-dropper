@@ -1,10 +1,11 @@
-package de.peterspace.nftdropper;
+package de.peterspace.nftdropper.controller;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 
+import de.peterspace.nftdropper.component.NftSupplier;
 import lombok.RequiredArgsConstructor;
 
 @Controller

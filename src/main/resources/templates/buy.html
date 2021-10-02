@@ -27,29 +27,35 @@
 		/*]]>*/
 	</script>
 
-	<form>
+	<table>
+		<tbody>
+			<tr>
+				<td>Quantity</td>
+				<td>
+					<select id="quantity" name="quantity" onchange="updateTotalPrice()">
+						<option th:each="i : ${#numbers.sequence(1, tokenMaxAmount)}" th:value="${i}" th:text="${i}"></option>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<td>Address</td>
+				<td>
+					<span th:text="${paymentAddress}"></span>
+				</td>
+			</tr>
+			<tr>
+				<td>Amount in ADA</td>
+				<td>
+					<input id="amountAda" name="amountAda" th:value="${tokenPrice}" disabled="disabled">
+				</td>
+			</tr>
+		</tbody>
+	</table>
 
-		<!-- quantity -->
-		<label for="quantity">Quantity <select id="quantity" name="quantity" onchange="updateTotalPrice()">
-				<option th:each="i : ${#numbers.sequence(1, tokenAmount)}" th:value="${i}" th:text="${i}"></option>
-		</select>
-		</label>
-		<br>
-
-		<!-- address -->
-		<label for="address">Address <input id="address" name="address">
-		</label>
-		<br>
-
-		<!-- amount -->
-		<label for="amountAda">Amount in ADA <input id="amountAda" name="amountAda" th:value="${tokenPrice}">
-		</label>
-		<br>
-	</form>
 
 	<h3>Terms &amp; Conditions.</h3>
 	<p>
-		NFTs will be sent to your wallet address once payment is received. We limit maximum quantity to <span th:text="${tokenAmount}"></span> NFTs per Transaction. Please use a Daedalus, Yoroi or Adalite wallet. Thanks
+		NFTs will be sent to your wallet address once payment is received. We limit maximum quantity to <span th:text="${tokenMaxAmount}"></span> NFTs per Transaction. Please use a Daedalus, Yoroi or Adalite wallet. Thanks
 	</p>
 
 </body>
