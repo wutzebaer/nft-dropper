@@ -21,7 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class CardanoNode {
 
-	@Value("${network}")
+	@Value("${NETWORK}")
 	private String network;
 
 	@Value("${working.dir}")

@@ -35,7 +35,7 @@ public class CardanoCli {
 	private static final String TRANSACTION_METADATA_JSON_FILENAME = "transactionMetadata.json";
 	private static final String TRANSACTION_SIGNED_FILENAME = "transaction.signed";
 
-	@Value("${network}")
+	@Value("${NETWORK}")
 	private String network;
 
 	private final CardanoNode cardanoNode;
