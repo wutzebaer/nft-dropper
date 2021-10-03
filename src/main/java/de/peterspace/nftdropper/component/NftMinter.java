@@ -1,6 +1,9 @@
 package de.peterspace.nftdropper.component;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -35,6 +38,9 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class NftMinter {
 
+	@Value("${token.dir}")
+	private String tokenDir;
+
 	@Value("${seller.address}")
 	private String sellerAddress;
 
@@ -47,6 +53,7 @@ public class NftMinter {
 	private final CardanoCli cardanoCli;
 	private final CardanoDbSyncClient cardanoDbSyncClient;
 	private final NftSupplier nftSupplier;
+	private final IpfsClient ipfsClient;
 
 	private final Set<Long> blacklist = new HashSet<>();
 
@@ -116,7 +123,11 @@ public class NftMinter {
 		// build metadata
 		JSONObject policyMetadata = new JSONObject();
 		for (TokenData tokenData : tokens) {
-			policyMetadata.put(tokenData.assetName(), tokenData.getMetaData());
+			JSONObject metaData = tokenData.getMetaData();
+			try (InputStream newInputStream = Files.newInputStream(Paths.get(tokenDir, tokenData.getFilename()))) {
+				metaData.put("image", "ipfs://" + ipfsClient.addFile(newInputStream));
+			}
+			policyMetadata.put(tokenData.assetName(), metaData);
 		}
 		JSONObject metaData = new JSONObject().put("721", new JSONObject().put(policy.getPolicyId(), policyMetadata));
 
