@@ -80,7 +80,7 @@ public class NftMinter {
 				.values()
 				.stream()
 				.filter(g -> !blacklist.contains(g.get(0).getStakeAddressId()))
-				.filter(g -> g.stream().mapToLong(e -> e.getValue()).sum() >= (tokenPrice * 1_000_000))
+				.filter(g -> nftSupplier.tokensLeft() == 0 || g.stream().mapToLong(e -> e.getValue()).sum() >= (tokenPrice * 1_000_000))
 				.collect(Collectors.toList());
 
 		for (List<TransactionInputs> validTransactionInputGroup : validTransactionInputGroups) {
