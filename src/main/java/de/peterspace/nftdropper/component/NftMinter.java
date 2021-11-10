@@ -129,7 +129,7 @@ public class NftMinter {
 			}
 			policyMetadata.put(tokenData.assetName(), metaData);
 		}
-		JSONObject metaData = new JSONObject().put("721", new JSONObject().put(policy.getPolicyId(), policyMetadata));
+		JSONObject metaData = new JSONObject().put("721", new JSONObject().put(policy.getPolicyId(), policyMetadata).put("version", "1.0"));
 
 		try {
 			String txId = cardanoCli.mint(transactionInputs, transactionOutputs, metaData, sellerAddress, paymentAddress, policy);
