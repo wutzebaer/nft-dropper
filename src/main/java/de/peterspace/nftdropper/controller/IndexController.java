@@ -24,6 +24,7 @@ public class IndexController {
 
 	@GetMapping("/")
 	public String index(Model model) {
+		model.addAttribute("totalTokens", nftSupplier.getTotalTokens());
 		model.addAttribute("tokenLeft", nftSupplier.tokensLeft());
 		model.addAttribute("tokenPrice", tokenPrice);
 		model.addAttribute("tokenMaxAmount", tokenMaxAmount);

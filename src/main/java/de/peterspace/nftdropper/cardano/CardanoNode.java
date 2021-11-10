@@ -38,14 +38,19 @@ public class CardanoNode {
 	@Value("${cardano-node.ipc-volume-name}")
 	private String ipcVolumeName;
 
+	@Getter
+	private String donationAddress;
+
 	@PostConstruct
 	public void init() throws Exception {
 
 		// determine network
 		if (network.equals("testnet")) {
 			networkMagicArgs = new String[] { "--testnet-magic", "1097911063" };
+			donationAddress = "addr_test1vzm609cpns8n6cnlpdslp4wyeym7ke3422nrt76esjwggfcpmns48";
 		} else if (network.equals("mainnet")) {
 			networkMagicArgs = new String[] { "--mainnet" };
+			donationAddress = "addr1qx6pnsm9n3lrvtwx24kq7a0mfwq2txum2tvtaevnpkn4mpyghzw2ukr33p5k45j42w62pqysdkf65p34mrvl4yu4n72s7yfgkq";
 		} else {
 			throw new RuntimeException("Network must be testnet or mainnet");
 		}

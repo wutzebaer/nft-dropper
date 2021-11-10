@@ -29,8 +29,10 @@ public class CardanoDbSyncClient {
 			+ "join tx t2 on t2.id = uv.tx_id \r\n"
 			+ "join tx_in ti on ti.tx_in_id = uv.tx_id\r\n"
 			+ "join tx_out to2 on to2.tx_id = ti.tx_out_id and to2.\"index\" = ti.tx_out_index\r\n"
+			+ "join tx_out to3 on to3.tx_id = uv.tx_id and to3.\"index\" = uv.\"index\" \r\n"
+			+ "left join ma_tx_out mto on mto.tx_out_id=to3.id\r\n"
 			+ "where \r\n"
-			+ "uv.address = ?\r\n"
+			+ "uv.address = ? and mto.id is NULL\r\n"
 			+ "group by uv.id\r\n"
 			+ "order by uv.id";
 

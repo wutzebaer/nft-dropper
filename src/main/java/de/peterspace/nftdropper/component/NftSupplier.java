@@ -13,9 +13,11 @@ import javax.annotation.PostConstruct;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import de.peterspace.nftdropper.model.TokenData;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 @Component
@@ -27,23 +29,31 @@ public class NftSupplier {
 	private Path soldFolder;
 	private Path sourceFolder;
 
+	@Getter
+	private long totalTokens;
 	private List<TokenData> availableTokens = new ArrayList<>();
 
 	@PostConstruct
+	@Scheduled(cron = "*/1 * * * * *")
 	public void init() throws IOException {
+		List<TokenData> foundTokens = new ArrayList<>();
 		sourceFolder = Paths.get(tokenDir);
 		soldFolder = Files.createDirectories(sourceFolder.resolve("sold"));
 
 		Path metaDataPath = sourceFolder.resolve("metadata.json");
 		JSONObject metaData = new JSONObject(new JSONTokener(Files.newBufferedReader(metaDataPath)));
+		totalTokens = metaData.keySet().size();
 		for (String filename : metaData.keySet()) {
 			Path tokenFile = Paths.get(tokenDir, filename);
 			if (Files.isRegularFile(tokenFile)) {
-				availableTokens.add(new TokenData(filename, metaData.getJSONObject(filename)));
+				foundTokens.add(new TokenData(filename, metaData.getJSONObject(filename)));
 			}
 		}
-		Collections.shuffle(availableTokens);
-		log.info("Found {} tokens to sell", availableTokens.size());
+		Collections.shuffle(foundTokens);
+		if (availableTokens.size() != foundTokens.size()) {
+			log.info("Found {} tokens to sell", foundTokens.size());
+		}
+		availableTokens = foundTokens;
 	}
 
 	public List<TokenData> getTokens(int amount) {
@@ -51,10 +61,10 @@ public class NftSupplier {
 	}
 
 	public void markTokenSold(List<TokenData> tokenDatas) throws IOException {
-		availableTokens.removeAll(tokenDatas);
 		for (TokenData tokenData : tokenDatas) {
 			Files.move(sourceFolder.resolve(tokenData.getFilename()), soldFolder.resolve(tokenData.getFilename()));
 		}
+		availableTokens.removeAll(tokenDatas);
 	}
 
 	public int tokensLeft() {

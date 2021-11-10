@@ -7,7 +7,8 @@
             "Expression": "Grin",
             "Facial Hair": "Amish"
         },
-        "description": "One-of-a-kind pop art pixel peep living on the blockchain!"
+        "description": "One-of-a-kind pop art pixel peep living on the blockchain!",
+		"mediaType": "image/jpeg"
     },
     "NFT_0002.jpg": {
         "name": "CryptoPeep #02",
@@ -17,7 +18,8 @@
             "Expression": "Grin",
             "Facial Hair": "Amish"
         },
-        "description": "One-of-a-kind pop art pixel peep living on the blockchain!"
+        "description": "One-of-a-kind pop art pixel peep living on the blockchain!",
+		"mediaType": "image/jpeg"
     },
     "NFT_0003.jpg": {
         "name": "CryptoPeep #03",
@@ -27,7 +29,8 @@
             "Expression": "Grin",
             "Facial Hair": "Amish"
         },
-        "description": "One-of-a-kind pop art pixel peep living on the blockchain!"
+        "description": "One-of-a-kind pop art pixel peep living on the blockchain!",
+		"mediaType": "image/jpeg"
     },
     "NFT_0004.jpg": {
         "name": "CryptoPeep #04",
@@ -37,6 +40,7 @@
             "Expression": "Grin",
             "Facial Hair": "Amish"
         },
-        "description": "One-of-a-kind pop art pixel peep living on the blockchain!"
+        "description": "One-of-a-kind pop art pixel peep living on the blockchain!",
+		"mediaType": "image/jpeg"
     },
 }
