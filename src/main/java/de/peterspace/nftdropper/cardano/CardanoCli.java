@@ -1,5 +1,6 @@
 package de.peterspace.nftdropper.cardano;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
@@ -52,11 +53,14 @@ public class CardanoCli {
 
 		// @formatter:off
         cardanoCliCmd = new String[] {
-                "docker", "exec",
+                "docker", "run",
+                "--rm",
+                "--entrypoint", "cardano-cli",
                 "-w", "/work",
                 "-e", "CARDANO_NODE_SOCKET_PATH=/ipc/node.socket",
-                cardanoNode.getContainerName(),
-                "cardano-cli"
+                "-v", cardanoNode.getIpcVolumeName() + ":/ipc",
+                "-v", new File(workingDir).getAbsolutePath() + ":/work",
+                "inputoutput/cardano-node"
         };
         // @formatter:on
 		this.networkMagicArgs = cardanoNode.getNetworkMagicArgs();
