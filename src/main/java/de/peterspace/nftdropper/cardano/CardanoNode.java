@@ -1,10 +1,7 @@
 package de.peterspace.nftdropper.cardano;
 
 import java.io.File;
-import java.time.Instant;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import javax.annotation.PostConstruct;

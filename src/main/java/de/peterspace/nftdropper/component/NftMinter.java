@@ -63,7 +63,7 @@ public class NftMinter {
 	@PostConstruct
 	public void init() throws Exception {
 		paymentAddress = cardanoCli.createPaymentAddress();
-		policy = cardanoCli.createPolicy(paymentAddress.getVkey(), 365);
+		policy = cardanoCli.createPolicy(365);
 	}
 
 	public String getPaymentAddress() {

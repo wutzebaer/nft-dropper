@@ -88,11 +88,20 @@ public class CardanoCli {
 	}
 
 	public Address createPaymentAddress() throws Exception {
-
 		String skeyFilename = "payment.skey";
 		String vkeyFilename = "payment.vkey";
 		String addressFilename = "payment.addr";
+		return createAddress(skeyFilename, vkeyFilename, addressFilename);
+	}
 
+	public Address createPolicyAddress() throws Exception {
+		String skeyFilename = "policy.skey";
+		String vkeyFilename = "policy.vkey";
+		String addressFilename = "policy.addr";
+		return createAddress(skeyFilename, vkeyFilename, addressFilename);
+	}
+
+	private Address createAddress(String skeyFilename, String vkeyFilename, String addressFilename) throws Exception {
 		if (!fileUtil.exists(skeyFilename)) {
 			ArrayList<String> cmd = new ArrayList<String>();
 			cmd.addAll(List.of(cardanoCliCmd));
@@ -124,7 +133,9 @@ public class CardanoCli {
 		return address;
 	}
 
-	public Policy createPolicy(String vkey, int days) throws Exception {
+	public Policy createPolicy(int days) throws Exception {
+
+		Address policyAddress = createPolicyAddress();
 
 		String policyFilename = "policy.script";
 		String policyIdFilename = "policy.id";
@@ -136,7 +147,7 @@ public class CardanoCli {
 			long dueSlot = queryTip() + secondsToLive;
 
 			String vkeyFilename = filename("vkey");
-			fileUtil.writeFile(vkeyFilename, vkey);
+			fileUtil.writeFile(vkeyFilename, policyAddress.getVkey());
 
 			// address hash
 			ArrayList<String> cmd1 = new ArrayList<String>();
@@ -282,6 +293,9 @@ public class CardanoCli {
 			cmd.addAll(List.of(networkMagicArgs));
 			cmd.add("--alonzo-era");
 
+			cmd.add("--witness-override");
+			cmd.add("2");
+
 			cmd.add("--out-file");
 			cmd.add(TRANSACTION_UNSIGNED_FILENAME);
 
@@ -303,6 +317,9 @@ public class CardanoCli {
 
 			cmd.add("--signing-key-file");
 			cmd.add("payment.skey");
+
+			cmd.add("--signing-key-file");
+			cmd.add("policy.skey");
 
 			cmd.addAll(List.of(networkMagicArgs));
 
