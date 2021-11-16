@@ -1,5 +1,6 @@
 package de.peterspace.nftdropper.model;
 
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
 
@@ -11,6 +12,6 @@ public class TokenData {
 	JSONObject metaData;
 
 	public String assetName() {
-		return StringUtils.left(metaData.getString("name").replaceAll("[^a-zA-Z0-9]", ""), 32);
+		return StringUtils.left(FilenameUtils.getBaseName(filename).replaceAll("[^a-zA-Z0-9]", ""), 32);
 	}
 }
