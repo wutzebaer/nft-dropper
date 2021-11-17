@@ -49,6 +49,9 @@ public class NftMinter {
 	@Value("${token.maxAmount}")
 	private long tokenMaxAmount;
 
+	@Value("${donate}")
+	private boolean donate;
+
 	private final CardanoCli cardanoCli;
 	private final CardanoNode cardanoNode;
 	private final CardanoDbSyncClient cardanoDbSyncClient;
@@ -122,7 +125,9 @@ public class NftMinter {
 			transactionOutputs.add(buyerAddress, "", change);
 		}
 
-		transactionOutputs.add(cardanoNode.getDonationAddress(), "", 1_000_000);
+		if (donate) {
+			transactionOutputs.add(cardanoNode.getDonationAddress(), "", 1_000_000);
+		}
 
 		// build metadata
 		JSONObject policyMetadata = new JSONObject();
