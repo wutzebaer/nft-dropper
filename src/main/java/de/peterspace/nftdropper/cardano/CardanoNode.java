@@ -6,7 +6,6 @@ import java.util.List;
 
 import javax.annotation.PostConstruct;
 
-import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -21,19 +20,11 @@ public class CardanoNode {
 	@Value("${NETWORK}")
 	private String network;
 
-	@Value("${working.dir}")
-	private String workingDir;
+	@Value("${cardano-node.ipc-volume-name}")
+	private String ipcVolumeName;
 
 	@Getter
 	private String[] networkMagicArgs;
-
-	@Getter
-	@Value("${cardano-node.container-name}")
-	private String containerName;
-
-	@Getter
-	@Value("${cardano-node.ipc-volume-name}")
-	private String ipcVolumeName;
 
 	@Getter
 	private String donationAddress;
@@ -50,25 +41,6 @@ public class CardanoNode {
 			donationAddress = "addr1qx6pnsm9n3lrvtwx24kq7a0mfwq2txum2tvtaevnpkn4mpyghzw2ukr33p5k45j42w62pqysdkf65p34mrvl4yu4n72s7yfgkq";
 		} else {
 			throw new RuntimeException("Network must be testnet or mainnet");
-		}
-
-		// determine container name
-		if (StringUtils.isBlank(containerName)) {
-			this.containerName = network + "-node";
-		}
-
-		// determine ipc volume name
-		if (StringUtils.isBlank(ipcVolumeName)) {
-			this.ipcVolumeName = network + "-ipc";
-		}
-
-		String runningContainers = ProcessUtil.runCommand(new String[] { "docker", "ps" });
-
-		// ensure running node
-		if (runningContainers.contains(containerName)) {
-			log.info("Container {} already running.", containerName);
-		} else {
-			startContainer();
 		}
 
 		// ensure node is synced
@@ -91,14 +63,21 @@ public class CardanoNode {
 		ArrayList<String> cmd = new ArrayList<String>();
 
 		cmd.add("docker");
-		cmd.add("exec");
+		cmd.add("run");
+
+		cmd.add("--rm");
+
+		cmd.add("--entrypoint");
+		cmd.add("cardano-cli");
+
+		cmd.add("-v");
+		cmd.add(ipcVolumeName + ":/ipc");
 
 		cmd.add("-e");
 		cmd.add("CARDANO_NODE_SOCKET_PATH=/ipc/node.socket");
 
-		cmd.add(containerName);
+		cmd.add("inputoutput/cardano-node");
 
-		cmd.add("cardano-cli");
 		cmd.add("query");
 		cmd.add("tip");
 
@@ -108,33 +87,4 @@ public class CardanoNode {
 		return jsonObject;
 	}
 
-	private void startContainer() throws Exception {
-		ProcessUtil.runCommand(new String[] { "docker", "pull", "inputoutput/cardano-node" });
-
-		ArrayList<String> cmd = new ArrayList<String>();
-		cmd.add("docker");
-		cmd.add("run");
-
-		cmd.add("--name");
-		cmd.add(containerName);
-
-		cmd.add("--rm");
-		cmd.add("-d");
-
-		cmd.add("-v");
-		cmd.add(new File(workingDir).getAbsolutePath() + ":/work");
-
-		cmd.add("-v");
-		cmd.add(network + "-data:/data");
-
-		cmd.add("-v");
-		cmd.add(ipcVolumeName + ":/ipc");
-
-		cmd.add("-e");
-		cmd.add("NETWORK=" + network);
-
-		cmd.add("inputoutput/cardano-node");
-
-		ProcessUtil.runCommand(cmd.toArray(new String[0]));
-	}
 }

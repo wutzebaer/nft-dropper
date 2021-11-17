@@ -4,7 +4,6 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
@@ -32,6 +31,13 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class CardanoCli {
 
+	private static final String POLICY_SKEY_FILENAME = "policy.skey";
+	private static final String PAYMENT_VKEY_FILENAME = "payment.vkey";
+	private static final String PAYMENT_SKEY_FILENAME = "payment.skey";
+	private static final String POLICY_ID_FILENAME = "policy.id";
+	private static final String POLICY_SCRIPT_FILENAME = "policy.script";
+	private static final String POLICY_VKEY_FILENAME = "policy.vkey";
+	private static final String PROTOCOL_JSON_FILENAME = "protocol.json";
 	private static final String TRANSACTION_UNSIGNED_FILENAME = "transaction.unsigned";
 	private static final String TRANSACTION_METADATA_JSON_FILENAME = "transactionMetadata.json";
 	private static final String TRANSACTION_SIGNED_FILENAME = "transaction.signed";
@@ -39,14 +45,21 @@ public class CardanoCli {
 	@Value("${NETWORK}")
 	private String network;
 
-	private final CardanoNode cardanoNode;
-	private final FileUtil fileUtil;
+	@Value("${cardano-node.ipc-volume-name}")
+	private String ipcVolumeName;
 
 	@Value("${working.dir}")
 	private String workingDir;
 
+	private final CardanoNode cardanoNode;
+	private final FileUtil fileUtil;
+
 	private String[] cardanoCliCmd;
 	private String[] networkMagicArgs;
+
+	private String prefixFilename(String filename) {
+		return network + "." + filename;
+	}
 
 	@PostConstruct
 	public void init() throws Exception {
@@ -58,7 +71,7 @@ public class CardanoCli {
                 "--entrypoint", "cardano-cli",
                 "-w", "/work",
                 "-e", "CARDANO_NODE_SOCKET_PATH=/ipc/node.socket",
-                "-v", cardanoNode.getIpcVolumeName() + ":/ipc",
+                "-v", ipcVolumeName + ":/ipc",
                 "-v", new File(workingDir).getAbsolutePath() + ":/work",
                 "inputoutput/cardano-node"
         };
@@ -70,7 +83,7 @@ public class CardanoCli {
 		cmd.add("query");
 		cmd.add("protocol-parameters");
 		cmd.add("--out-file");
-		cmd.add("protocol.json");
+		cmd.add(prefixFilename(PROTOCOL_JSON_FILENAME));
 		cmd.addAll(List.of(networkMagicArgs));
 		ProcessUtil.runCommand(cmd.toArray(new String[0]));
 
@@ -88,16 +101,16 @@ public class CardanoCli {
 	}
 
 	public Address createPaymentAddress() throws Exception {
-		String skeyFilename = "payment.skey";
-		String vkeyFilename = "payment.vkey";
-		String addressFilename = "payment.addr";
+		String skeyFilename = prefixFilename(PAYMENT_SKEY_FILENAME);
+		String vkeyFilename = prefixFilename(PAYMENT_VKEY_FILENAME);
+		String addressFilename = prefixFilename("payment.addr");
 		return createAddress(skeyFilename, vkeyFilename, addressFilename);
 	}
 
 	public Address createPolicyAddress() throws Exception {
-		String skeyFilename = "policy.skey";
-		String vkeyFilename = "policy.vkey";
-		String addressFilename = "policy.addr";
+		String skeyFilename = prefixFilename(POLICY_SKEY_FILENAME);
+		String vkeyFilename = prefixFilename(POLICY_VKEY_FILENAME);
+		String addressFilename = prefixFilename("policy.addr");
 		return createAddress(skeyFilename, vkeyFilename, addressFilename);
 	}
 
@@ -135,10 +148,10 @@ public class CardanoCli {
 
 	public Policy createPolicy(int days) throws Exception {
 
-		Address policyAddress = createPolicyAddress();
+		createPolicyAddress();
 
-		String policyFilename = "policy.script";
-		String policyIdFilename = "policy.id";
+		String policyFilename = prefixFilename(POLICY_SCRIPT_FILENAME);
+		String policyIdFilename = prefixFilename(POLICY_ID_FILENAME);
 
 		String policyString;
 		if (!fileUtil.exists(policyFilename)) {
@@ -146,8 +159,7 @@ public class CardanoCli {
 			long secondsToLive = 60 * 60 * 24 * days;
 			long dueSlot = queryTip() + secondsToLive;
 
-			String vkeyFilename = filename("vkey");
-			fileUtil.writeFile(vkeyFilename, policyAddress.getVkey());
+			String vkeyFilename = prefixFilename(POLICY_VKEY_FILENAME);
 
 			// address hash
 			ArrayList<String> cmd1 = new ArrayList<String>();
@@ -157,7 +169,6 @@ public class CardanoCli {
 			cmd1.add("--payment-verification-key-file");
 			cmd1.add(vkeyFilename);
 			String keyHash = ProcessUtil.runCommand(cmd1.toArray(new String[0]));
-			fileUtil.removeFile(vkeyFilename);
 
 			// @formatter:off
 	        JSONObject script = new JSONObject()
@@ -190,10 +201,6 @@ public class CardanoCli {
 		return new Policy(policyString, policyId);
 	}
 
-	private String filename(String ext) {
-		return UUID.randomUUID().toString() + "." + ext;
-	}
-
 	public String mint(List<TransactionInputs> transactionInputs, TransactionOutputs transactionOutputs, JSONObject metaData, String changeAddress, Address paymentAddress, Policy policy) throws Exception {
 		try {
 
@@ -224,7 +231,7 @@ public class CardanoCli {
 		cmd.add("submit");
 
 		cmd.add("--tx-file");
-		cmd.add(TRANSACTION_SIGNED_FILENAME);
+		cmd.add(prefixFilename(TRANSACTION_SIGNED_FILENAME));
 
 		cmd.addAll(List.of(networkMagicArgs));
 
@@ -239,7 +246,7 @@ public class CardanoCli {
 			cmd.add("transaction");
 			cmd.add("txid");
 			cmd.add("--tx-file");
-			cmd.add(TRANSACTION_SIGNED_FILENAME);
+			cmd.add(prefixFilename(TRANSACTION_SIGNED_FILENAME));
 			txId = ProcessUtil.runCommand(cmd.toArray(new String[0]));
 		}
 		return txId;
@@ -277,14 +284,14 @@ public class CardanoCli {
 				cmd.add("--mint");
 				cmd.add(StringUtils.join(mints, "+"));
 				cmd.add("--minting-script-file");
-				cmd.add("policy.script");
+				cmd.add(prefixFilename(POLICY_SCRIPT_FILENAME));
 			}
 
 			if (metaData != null) {
-				fileUtil.writeFile(TRANSACTION_METADATA_JSON_FILENAME, metaData.toString(3));
+				fileUtil.writeFile(prefixFilename(TRANSACTION_METADATA_JSON_FILENAME), metaData.toString(3));
 				cmd.add("--json-metadata-no-schema");
 				cmd.add("--metadata-json-file");
-				cmd.add(TRANSACTION_METADATA_JSON_FILENAME);
+				cmd.add(prefixFilename(TRANSACTION_METADATA_JSON_FILENAME));
 			}
 
 			cmd.add("--change-address");
@@ -297,7 +304,7 @@ public class CardanoCli {
 			cmd.add("2");
 
 			cmd.add("--out-file");
-			cmd.add(TRANSACTION_UNSIGNED_FILENAME);
+			cmd.add(prefixFilename(TRANSACTION_UNSIGNED_FILENAME));
 
 			long maxSlot = new JSONObject(policy.getPolicy()).getJSONArray("scripts").getJSONObject(0).getLong("slot");
 			cmd.add("--invalid-hereafter");
@@ -316,18 +323,18 @@ public class CardanoCli {
 			cmd.add("sign");
 
 			cmd.add("--signing-key-file");
-			cmd.add("payment.skey");
+			cmd.add(prefixFilename(PAYMENT_SKEY_FILENAME));
 
 			cmd.add("--signing-key-file");
-			cmd.add("policy.skey");
+			cmd.add(prefixFilename(POLICY_SKEY_FILENAME));
 
 			cmd.addAll(List.of(networkMagicArgs));
 
 			cmd.add("--tx-body-file");
-			cmd.add(TRANSACTION_UNSIGNED_FILENAME);
+			cmd.add(prefixFilename(TRANSACTION_UNSIGNED_FILENAME));
 
 			cmd.add("--out-file");
-			cmd.add(TRANSACTION_SIGNED_FILENAME);
+			cmd.add(prefixFilename(TRANSACTION_SIGNED_FILENAME));
 
 			ProcessUtil.runCommand(cmd.toArray(new String[0]));
 
