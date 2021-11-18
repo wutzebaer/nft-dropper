@@ -67,6 +67,10 @@ public class NftMinter {
 	public void init() throws Exception {
 		paymentAddress = cardanoCli.createPaymentAddress();
 		policy = cardanoCli.createPolicy(365);
+		log.info("Seller Address: {}", sellerAddress);
+		log.info("Token Price: {}", tokenPrice);
+		log.info("Token Max Amount: {}", tokenMaxAmount);
+		log.info("Policy Id: {}", policy.getPolicyId());
 	}
 
 	public String getPaymentAddress() {
