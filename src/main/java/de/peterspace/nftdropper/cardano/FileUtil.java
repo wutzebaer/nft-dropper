@@ -17,38 +17,38 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class FileUtil {
 
-	@Value("${working.dir}")
-	private String workingDir;
+	@Value("${working.dir.internal}")
+	private String workingDirInternal;
 
 	public String consumeFile(String filename) throws Exception {
-		Path path = Paths.get(workingDir, filename);
+		Path path = Paths.get(workingDirInternal, filename);
 		String readString = Files.readString(path);
 		Files.delete(path);
 		return readString;
 	}
 
 	public boolean exists(String filename) throws Exception {
-		return Files.isRegularFile(Paths.get(workingDir, filename));
+		return Files.isRegularFile(Paths.get(workingDirInternal, filename));
 	}
 
 	public String readFile(String filename) throws Exception {
-		return Files.readString(Paths.get(workingDir, filename));
+		return Files.readString(Paths.get(workingDirInternal, filename));
 	}
 
 	public byte[] readFileBinary(String filename) throws Exception {
-		return Files.readAllBytes(Paths.get(workingDir, filename));
+		return Files.readAllBytes(Paths.get(workingDirInternal, filename));
 	}
 
 	public void writeFile(String filename, String content) throws Exception {
-		Files.writeString(Paths.get(workingDir, filename), content);
+		Files.writeString(Paths.get(workingDirInternal, filename), content);
 	}
 
 	public void writeFile(String filename, byte[] content) throws Exception {
-		Files.write(Paths.get(workingDir, filename), content);
+		Files.write(Paths.get(workingDirInternal, filename), content);
 	}
 
 	public void removeFile(String filename) throws Exception {
-		Files.delete(Paths.get(workingDir, filename));
+		Files.delete(Paths.get(workingDirInternal, filename));
 	}
 
 }

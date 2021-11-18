@@ -48,8 +48,8 @@ public class CardanoCli {
 	@Value("${cardano-node.ipc-volume-name}")
 	private String ipcVolumeName;
 
-	@Value("${working.dir}")
-	private String workingDir;
+	@Value("${working.dir.external}")
+	private String workingDirExternal;
 
 	private final CardanoNode cardanoNode;
 	private final FileUtil fileUtil;
@@ -72,7 +72,7 @@ public class CardanoCli {
                 "-w", "/work",
                 "-e", "CARDANO_NODE_SOCKET_PATH=/ipc/node.socket",
                 "-v", ipcVolumeName + ":/ipc",
-                "-v", new File(workingDir).getAbsolutePath() + ":/work",
+                "-v", workingDirExternal + ":/work",
                 "inputoutput/cardano-node"
         };
         // @formatter:on
