@@ -29,6 +29,7 @@ import de.peterspace.nftdropper.model.Policy;
 import de.peterspace.nftdropper.model.TokenData;
 import de.peterspace.nftdropper.model.TransactionInputs;
 import de.peterspace.nftdropper.model.TransactionOutputs;
+import de.peterspace.nftdropper.repository.AddressRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -47,7 +48,7 @@ public class NftMinter {
 	private long tokenPrice;
 
 	@Value("${token.maxAmount}")
-	private long tokenMaxAmount;
+	private int tokenMaxAmount;
 
 	@Value("${donate}")
 	private boolean donate;
@@ -57,6 +58,7 @@ public class NftMinter {
 	private final CardanoDbSyncClient cardanoDbSyncClient;
 	private final NftSupplier nftSupplier;
 	private final IpfsClient ipfsClient;
+	private final AddressRepository addressRepository;
 
 	private final Set<TransactionInputs> blacklist = new HashSet<>();
 
@@ -79,34 +81,38 @@ public class NftMinter {
 
 	@Scheduled(cron = "*/1 * * * * *")
 	public void processOffers() throws Exception {
+		addressRepository.findAll().forEach(fundAddress -> {
+			List<TransactionInputs> offerFundings = cardanoDbSyncClient.getOfferFundings(fundAddress.getAddress());
+			Map<Long, List<TransactionInputs>> transactionInputGroups = offerFundings.stream()
+					.filter(of -> !blacklist.contains(of))
+					.collect(Collectors.groupingBy(of -> of.getStakeAddressId(), LinkedHashMap::new, Collectors.toList()));
 
-		List<TransactionInputs> offerFundings = cardanoDbSyncClient.getOfferFundings(getPaymentAddress());
-		Map<Long, List<TransactionInputs>> transactionInputGroups = offerFundings.stream()
-				.filter(of -> !blacklist.contains(of))
-				.collect(Collectors.groupingBy(of -> of.getStakeAddressId(), LinkedHashMap::new, Collectors.toList()));
+			List<List<TransactionInputs>> validTransactionInputGroups = transactionInputGroups
+					.values()
+					.stream()
+					.filter(g -> nftSupplier.tokensLeft() == 0 || g.stream().mapToLong(e -> e.getValue()).sum() >= (tokenPrice * 1_000_000))
+					.collect(Collectors.toList());
 
-		List<List<TransactionInputs>> validTransactionInputGroups = transactionInputGroups
-				.values()
-				.stream()
-				.filter(g -> nftSupplier.tokensLeft() == 0 || g.stream().mapToLong(e -> e.getValue()).sum() >= (tokenPrice * 1_000_000))
-				.collect(Collectors.toList());
-
-		for (List<TransactionInputs> validTransactionInputGroup : validTransactionInputGroups) {
-			if (nftSupplier.tokensLeft() > 0) {
-				sell(validTransactionInputGroup);
-			} else {
-				refund(validTransactionInputGroup);
+			for (List<TransactionInputs> validTransactionInputGroup : validTransactionInputGroups) {
+				try {
+					if (nftSupplier.tokensLeft() > 0 && (tokenMaxAmount - fundAddress.getTokensMinted()) > 0) {
+						sell(fundAddress, validTransactionInputGroup);
+					} else {
+						refund(fundAddress, validTransactionInputGroup);
+					}
+					blacklist.addAll(validTransactionInputGroup);
+				} catch (Exception e) {
+					log.error(fundAddress.getAddress() + " failed", e);
+				}
 			}
-			blacklist.addAll(validTransactionInputGroup);
-		}
-
+		});
 	}
 
-	private void sell(List<TransactionInputs> transactionInputs) throws DecoderException, Exception, IOException {
+	private void sell(Address fundAddress, List<TransactionInputs> transactionInputs) throws DecoderException, Exception, IOException {
 		// determine amount of tokens
 		String buyerAddress = transactionInputs.get(0).getSourceAddress();
 		long funds = transactionInputs.stream().mapToLong(e -> e.getValue()).sum();
-		int amount = (int) Math.min(Math.min(funds / (tokenPrice * 1_000_000), tokenMaxAmount), nftSupplier.tokensLeft());
+		int amount = (int) Math.min(Math.min(funds / (tokenPrice * 1_000_000), tokenMaxAmount - fundAddress.getTokensMinted()), nftSupplier.tokensLeft());
 
 		// select tokens
 		List<TokenData> tokens = nftSupplier.getTokens(amount);
@@ -145,9 +151,14 @@ public class NftMinter {
 		JSONObject metaData = new JSONObject().put("721", new JSONObject().put(policy.getPolicyId(), policyMetadata).put("version", "1.0"));
 
 		try {
-			String txId = cardanoCli.mint(transactionInputs, transactionOutputs, metaData, sellerAddress, paymentAddress, policy);
+			String txId = cardanoCli.mint(transactionInputs, transactionOutputs, metaData, sellerAddress, fundAddress, policy);
 			log.info("Successfully sold, txid: {}", txId);
 			nftSupplier.markTokenSold(tokens);
+
+			fundAddress.setTokensMinted(fundAddress.getTokensMinted() + amount);
+			addressRepository.save(fundAddress);
+			log.info("{} has {} tokens left", fundAddress.getAddress(), tokenMaxAmount - fundAddress.getTokensMinted());
+
 		} catch (UnexpectedTokensException e) {
 			log.error("User {} sent tokens, blacklisting: {}", buyerAddress, e.getMessage());
 		} catch (UnprocessedTransactionsException e) {
@@ -155,14 +166,14 @@ public class NftMinter {
 		}
 	}
 
-	private void refund(List<TransactionInputs> transactionInputs) throws Exception {
+	private void refund(Address fundAddress, List<TransactionInputs> transactionInputs) throws Exception {
 		// determine amount of tokens
 		String buyerAddress = transactionInputs.get(0).getSourceAddress();
 
 		TransactionOutputs transactionOutputs = new TransactionOutputs();
 
 		try {
-			String txId = cardanoCli.mint(transactionInputs, transactionOutputs, null, buyerAddress, paymentAddress, policy);
+			String txId = cardanoCli.mint(transactionInputs, transactionOutputs, null, buyerAddress, fundAddress, policy);
 			log.info("Successfully refunded, txid: {}", txId);
 		} catch (UnexpectedTokensException e) {
 			log.error("User {} sent tokens, blacklisting: {}", buyerAddress, e.getMessage());

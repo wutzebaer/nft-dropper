@@ -13,6 +13,9 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class IndexController {
 
+	@Value("${hcaptcha.sitekey}")
+	private String siteKey;
+
 	@Value("${token.price}")
 	private long tokenPrice;
 
@@ -29,6 +32,7 @@ public class IndexController {
 		model.addAttribute("tokenPrice", tokenPrice);
 		model.addAttribute("tokenMaxAmount", tokenMaxAmount);
 		model.addAttribute("paymentAddress", nftMinter.getPaymentAddress());
+		model.addAttribute("siteKey", siteKey);
 		return "index";
 	}
 

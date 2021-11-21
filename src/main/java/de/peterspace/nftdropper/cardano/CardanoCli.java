@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
@@ -31,12 +32,14 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class CardanoCli {
 
-	private static final String POLICY_SKEY_FILENAME = "policy.skey";
 	private static final String PAYMENT_VKEY_FILENAME = "payment.vkey";
 	private static final String PAYMENT_SKEY_FILENAME = "payment.skey";
+	private static final String PAYMENT_ADDR_FILENAME = "payment.addr";
 	private static final String POLICY_ID_FILENAME = "policy.id";
 	private static final String POLICY_SCRIPT_FILENAME = "policy.script";
+	private static final String POLICY_SKEY_FILENAME = "policy.skey";
 	private static final String POLICY_VKEY_FILENAME = "policy.vkey";
+	private static final String POLICY_ADDR_FILENAME = "policy.addr";
 	private static final String PROTOCOL_JSON_FILENAME = "protocol.json";
 	private static final String TRANSACTION_UNSIGNED_FILENAME = "transaction.unsigned";
 	private static final String TRANSACTION_METADATA_JSON_FILENAME = "transactionMetadata.json";
@@ -103,14 +106,25 @@ public class CardanoCli {
 	public Address createPaymentAddress() throws Exception {
 		String skeyFilename = prefixFilename(PAYMENT_SKEY_FILENAME);
 		String vkeyFilename = prefixFilename(PAYMENT_VKEY_FILENAME);
-		String addressFilename = prefixFilename("payment.addr");
+		String addressFilename = prefixFilename(PAYMENT_ADDR_FILENAME);
 		return createAddress(skeyFilename, vkeyFilename, addressFilename);
+	}
+
+	public Address createDisposableAddress() throws Exception {
+		String skeyFilename = prefixFilename(UUID.randomUUID().toString() + "." + PAYMENT_SKEY_FILENAME);
+		String vkeyFilename = prefixFilename(UUID.randomUUID().toString() + "." + PAYMENT_VKEY_FILENAME);
+		String addressFilename = prefixFilename(UUID.randomUUID().toString() + "." + PAYMENT_ADDR_FILENAME);
+		Address createAddress = createAddress(skeyFilename, vkeyFilename, addressFilename);
+		fileUtil.removeFile(skeyFilename);
+		fileUtil.removeFile(vkeyFilename);
+		fileUtil.removeFile(addressFilename);
+		return createAddress;
 	}
 
 	public Address createPolicyAddress() throws Exception {
 		String skeyFilename = prefixFilename(POLICY_SKEY_FILENAME);
 		String vkeyFilename = prefixFilename(POLICY_VKEY_FILENAME);
-		String addressFilename = prefixFilename("policy.addr");
+		String addressFilename = prefixFilename(POLICY_ADDR_FILENAME);
 		return createAddress(skeyFilename, vkeyFilename, addressFilename);
 	}
 
@@ -142,7 +156,7 @@ public class CardanoCli {
 		String vkey = fileUtil.readFile(vkeyFilename);
 		String addressLiteral = fileUtil.readFile(addressFilename);
 
-		Address address = new Address(addressLiteral, skey, vkey);
+		Address address = new Address(addressLiteral, skey, vkey, 0);
 		return address;
 	}
 
@@ -205,7 +219,7 @@ public class CardanoCli {
 		try {
 
 			buildTransaction(transactionInputs, transactionOutputs, metaData, changeAddress, policy);
-			signTransaction();
+			signTransaction(paymentAddress);
 			String txId = getTransactionId();
 			submitTransaction();
 			return txId;
@@ -315,15 +329,19 @@ public class CardanoCli {
 		}
 	}
 
-	private void signTransaction() throws Exception {
+	private void signTransaction(Address paymentAddress) throws Exception {
 		{
+
+			String skeyFilename = prefixFilename(UUID.randomUUID().toString() + "." + PAYMENT_SKEY_FILENAME);
+			fileUtil.writeFile(skeyFilename, paymentAddress.getSkey());
+
 			ArrayList<String> cmd = new ArrayList<String>();
 			cmd.addAll(List.of(cardanoCliCmd));
 			cmd.add("transaction");
 			cmd.add("sign");
 
 			cmd.add("--signing-key-file");
-			cmd.add(prefixFilename(PAYMENT_SKEY_FILENAME));
+			cmd.add(skeyFilename);
 
 			cmd.add("--signing-key-file");
 			cmd.add(prefixFilename(POLICY_SKEY_FILENAME));
@@ -337,6 +355,8 @@ public class CardanoCli {
 			cmd.add(prefixFilename(TRANSACTION_SIGNED_FILENAME));
 
 			ProcessUtil.runCommand(cmd.toArray(new String[0]));
+
+			fileUtil.removeFile(skeyFilename);
 
 		}
 	}
