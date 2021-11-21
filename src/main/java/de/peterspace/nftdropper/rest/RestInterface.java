@@ -60,9 +60,13 @@ public class RestInterface {
 	}
 
 	@GetMapping("addressTokensLeft")
-	public int getAddressTokensLeft(String address) {
+	public ResponseEntity<Integer> getAddressTokensLeft(String address) {
 		Optional<Address> foundAddress = addressRepository.findById(address);
-		return tokenMaxAmount - foundAddress.get().getTokensMinted();
+		if (foundAddress.isPresent()) {
+			return new ResponseEntity<Integer>(tokenMaxAmount - foundAddress.get().getTokensMinted(), HttpStatus.OK);
+		} else {
+			return new ResponseEntity<Integer>(HttpStatus.NOT_FOUND);
+		}
 	}
 
 	@lombok.Value
