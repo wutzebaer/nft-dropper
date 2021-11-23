@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 import javax.annotation.PostConstruct;
 
 import org.apache.commons.codec.DecoderException;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -122,7 +123,11 @@ public class NftMinter {
 		// determine amount of tokens
 		String buyerAddress = transactionInputs.get(0).getSourceAddress();
 		long funds = transactionInputs.stream().mapToLong(e -> e.getValue()).sum();
-		int amount = (int) Math.min(Math.min(funds / (tokenPrice * 1_000_000), tokenMaxAmount - fundAddress.getTokensMinted()), nftSupplier.tokensLeft());
+
+		int amount = (int) NumberUtils.min(
+				funds / (tokenPrice * 1_000_000),
+				tokenMaxAmount - (useCaptcha ? fundAddress.getTokensMinted() : 0),
+				nftSupplier.tokensLeft());
 
 		// select tokens
 		List<TokenData> tokens = nftSupplier.getTokens(amount);
@@ -165,9 +170,11 @@ public class NftMinter {
 			log.info("Successfully sold, txid: {}", txId);
 			nftSupplier.markTokenSold(tokens);
 
-			fundAddress.setTokensMinted(fundAddress.getTokensMinted() + amount);
-			addressRepository.save(fundAddress);
-			log.info("{} has {} tokens left", fundAddress.getAddress(), tokenMaxAmount - fundAddress.getTokensMinted());
+			if (fundAddress != paymentAddress) {
+				fundAddress.setTokensMinted(fundAddress.getTokensMinted() + amount);
+				addressRepository.save(fundAddress);
+				log.info("{} has {} tokens left", fundAddress.getAddress(), tokenMaxAmount - fundAddress.getTokensMinted());
+			}
 
 		} catch (UnexpectedTokensException e) {
 			log.error("User {} sent tokens, blacklisting: {}", buyerAddress, e.getMessage());
