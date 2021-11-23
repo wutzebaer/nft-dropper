@@ -38,6 +38,9 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class NftMinter {
 
+	@Value("${use.captcha}")
+	private boolean useCaptcha;
+
 	@Value("${token.dir}")
 	private String tokenDir;
 
@@ -81,31 +84,38 @@ public class NftMinter {
 
 	@Scheduled(cron = "*/1 * * * * *")
 	public void processOffers() throws Exception {
+		if (!useCaptcha) {
+			processAddress(paymentAddress);
+		}
 		addressRepository.findAll().forEach(fundAddress -> {
-			List<TransactionInputs> offerFundings = cardanoDbSyncClient.getOfferFundings(fundAddress.getAddress());
-			Map<Long, List<TransactionInputs>> transactionInputGroups = offerFundings.stream()
-					.filter(of -> !blacklist.contains(of))
-					.collect(Collectors.groupingBy(of -> of.getStakeAddressId(), LinkedHashMap::new, Collectors.toList()));
-
-			List<List<TransactionInputs>> validTransactionInputGroups = transactionInputGroups
-					.values()
-					.stream()
-					.filter(g -> nftSupplier.tokensLeft() == 0 || g.stream().mapToLong(e -> e.getValue()).sum() >= (tokenPrice * 1_000_000))
-					.collect(Collectors.toList());
-
-			for (List<TransactionInputs> validTransactionInputGroup : validTransactionInputGroups) {
-				try {
-					if (nftSupplier.tokensLeft() > 0 && (tokenMaxAmount - fundAddress.getTokensMinted()) > 0) {
-						sell(fundAddress, validTransactionInputGroup);
-					} else {
-						refund(fundAddress, validTransactionInputGroup);
-					}
-					blacklist.addAll(validTransactionInputGroup);
-				} catch (Exception e) {
-					log.error(fundAddress.getAddress() + " failed", e);
-				}
-			}
+			processAddress(fundAddress);
 		});
+	}
+
+	private void processAddress(Address fundAddress) {
+		List<TransactionInputs> offerFundings = cardanoDbSyncClient.getOfferFundings(fundAddress.getAddress());
+		Map<Long, List<TransactionInputs>> transactionInputGroups = offerFundings.stream()
+				.filter(of -> !blacklist.contains(of))
+				.collect(Collectors.groupingBy(of -> of.getStakeAddressId(), LinkedHashMap::new, Collectors.toList()));
+
+		List<List<TransactionInputs>> validTransactionInputGroups = transactionInputGroups
+				.values()
+				.stream()
+				.filter(g -> nftSupplier.tokensLeft() == 0 || g.stream().mapToLong(e -> e.getValue()).sum() >= (tokenPrice * 1_000_000))
+				.collect(Collectors.toList());
+
+		for (List<TransactionInputs> validTransactionInputGroup : validTransactionInputGroups) {
+			try {
+				if (nftSupplier.tokensLeft() > 0 && (tokenMaxAmount - fundAddress.getTokensMinted()) > 0) {
+					sell(fundAddress, validTransactionInputGroup);
+				} else {
+					refund(fundAddress, validTransactionInputGroup);
+				}
+				blacklist.addAll(validTransactionInputGroup);
+			} catch (Exception e) {
+				log.error(fundAddress.getAddress() + " failed", e);
+			}
+		}
 	}
 
 	private void sell(Address fundAddress, List<TransactionInputs> transactionInputs) throws DecoderException, Exception, IOException {
