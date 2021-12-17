@@ -2,6 +2,7 @@ package de.peterspace.nftdropper.component;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashSet;
@@ -14,6 +15,8 @@ import java.util.stream.Collectors;
 import javax.annotation.PostConstruct;
 
 import org.apache.commons.codec.DecoderException;
+import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
@@ -119,6 +122,14 @@ public class NftMinter {
 		}
 	}
 
+	private String formatCurrency(String policyId, String assetName) {
+		if (StringUtils.isBlank(assetName)) {
+			return policyId;
+		} else {
+			return policyId + "." + Hex.encodeHexString(assetName.getBytes(StandardCharsets.UTF_8));
+		}
+	}
+
 	private void sell(Address fundAddress, List<TransactionInputs> transactionInputs) throws DecoderException, Exception, IOException {
 		// determine amount of tokens
 		String buyerAddress = transactionInputs.get(0).getSourceAddress();
@@ -137,7 +148,7 @@ public class NftMinter {
 
 		// send tokens
 		for (TokenData token : tokens) {
-			transactionOutputs.add(buyerAddress, policy.getPolicyId() + "." + token.assetName(), 1);
+			transactionOutputs.add(buyerAddress, formatCurrency(policy.getPolicyId(), token.assetName()), 1);
 		}
 
 		// min output for tokens
