@@ -33,6 +33,7 @@ public class IndexController {
 		model.addAttribute("totalTokens", nftSupplier.getTotalTokens());
 		model.addAttribute("tokenLeft", nftSupplier.tokensLeft());
 		model.addAttribute("tokenPrice", tokenPrice);
+		model.addAttribute("tierPrices", nftMinter.getTierPrices());
 		model.addAttribute("tokenMaxAmount", tokenMaxAmount);
 		model.addAttribute("paymentAddress", nftMinter.getPaymentAddress());
 		model.addAttribute("siteKey", siteKey);

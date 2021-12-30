@@ -7,14 +7,16 @@ setInterval(function() {
 	});
 }, 1000);
 
-setInterval(function() {
-	$.ajax({
-		url: "api/addressTokensLeft?address=" + $("#address").text(),
-		success: function(result) {
-			$("#addressTokensLeft").text(result);
-		}
-	});
-}, 1000);
+if(useCaptcha) {
+	setInterval(function() {
+		$.ajax({
+			url: "api/addressTokensLeft?address=" + $("#address").text(),
+			success: function(result) {
+				$("#addressTokensLeft").text(result);
+			}
+		});
+	}, 1000);
+}
 
 
 var interval = setInterval(function() {

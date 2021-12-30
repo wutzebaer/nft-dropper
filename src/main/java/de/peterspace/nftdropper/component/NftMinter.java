@@ -4,9 +4,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -19,6 +25,7 @@ import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.json.JSONObject;
+import org.json.JSONTokener;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -34,6 +41,7 @@ import de.peterspace.nftdropper.model.TokenData;
 import de.peterspace.nftdropper.model.TransactionInputs;
 import de.peterspace.nftdropper.model.TransactionOutputs;
 import de.peterspace.nftdropper.repository.AddressRepository;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -66,20 +74,49 @@ public class NftMinter {
 	private final NftSupplier nftSupplier;
 	private final IpfsClient ipfsClient;
 	private final AddressRepository addressRepository;
-
 	private final Set<TransactionInputs> blacklist = new HashSet<>();
+
+	@Getter
+	private List<TierPrice> tierPrices = new ArrayList<>();
 
 	private Address paymentAddress;
 	private Policy policy;
+
+	@lombok.Value
+	public static class TierPrice {
+		long amount;
+		long price;
+	}
 
 	@PostConstruct
 	public void init() throws Exception {
 		paymentAddress = cardanoCli.createPaymentAddress();
 		policy = cardanoCli.createPolicy(365);
+
+		Path sourceFolder = Paths.get(tokenDir);
+		Path pricesPath = sourceFolder.resolve("prices.json");
+		if (Files.exists(pricesPath)) {
+			JSONObject prices = new JSONObject(new JSONTokener(Files.newBufferedReader(pricesPath)));
+			for (String amount : prices.keySet()) {
+				tierPrices.add(new TierPrice(Long.parseLong(amount), prices.getLong(amount)));
+			}
+			Collections.sort(tierPrices, Comparator.comparingLong(tp -> tp.amount));
+		}
+
 		log.info("Seller Address: {}", sellerAddress);
-		log.info("Token Price: {}", tokenPrice);
 		log.info("Token Max Amount: {}", tokenMaxAmount);
 		log.info("Policy Id: {}", policy.getPolicyId());
+		log.info("Token Price: {}", tokenPrice);
+		log.info("Tier Prices: {}", tierPrices);
+	}
+
+	private long findTierPrice(long ada) {
+		return tierPrices
+				.stream()
+				.filter(tp -> ada / tp.price >= tp.amount)
+				.mapToLong(tp -> tp.price)
+				.min()
+				.orElseGet(() -> tokenPrice);
 	}
 
 	public String getPaymentAddress() {
@@ -102,10 +139,12 @@ public class NftMinter {
 				.filter(of -> !blacklist.contains(of))
 				.collect(Collectors.groupingBy(of -> of.getStakeAddressId(), LinkedHashMap::new, Collectors.toList()));
 
+		long minFunds = tierPrices.isEmpty() ? tokenPrice : tierPrices.get(0).getAmount() * tierPrices.get(0).getPrice();
+
 		List<List<TransactionInputs>> validTransactionInputGroups = transactionInputGroups
 				.values()
 				.stream()
-				.filter(g -> nftSupplier.tokensLeft() == 0 || g.stream().mapToLong(e -> e.getValue()).sum() >= (tokenPrice * 1_000_000))
+				.filter(g -> nftSupplier.tokensLeft() == 0 || g.stream().mapToLong(e -> e.getValue()).sum() >= (minFunds * 1_000_000))
 				.collect(Collectors.toList());
 
 		for (List<TransactionInputs> validTransactionInputGroup : validTransactionInputGroups) {
@@ -135,8 +174,10 @@ public class NftMinter {
 		String buyerAddress = transactionInputs.get(0).getSourceAddress();
 		long funds = transactionInputs.stream().mapToLong(e -> e.getValue()).sum();
 
+		long selectedPrice = findTierPrice(funds);
+
 		int amount = (int) NumberUtils.min(
-				funds / (tokenPrice * 1_000_000),
+				funds / (selectedPrice * 1_000_000),
 				tokenMaxAmount - (useCaptcha ? fundAddress.getTokensMinted() : 0),
 				nftSupplier.tokensLeft());
 
@@ -156,7 +197,7 @@ public class NftMinter {
 		transactionOutputs.add(buyerAddress, "", minOutput);
 
 		// if user paid more than needed
-		long change = funds - amount * (tokenPrice * 1_000_000);
+		long change = funds - amount * (selectedPrice * 1_000_000);
 		if (change > 0) {
 			transactionOutputs.add(buyerAddress, "", change);
 		}
@@ -178,7 +219,7 @@ public class NftMinter {
 
 		try {
 			String txId = cardanoCli.mint(transactionInputs, transactionOutputs, metaData, sellerAddress, fundAddress, policy);
-			log.info("Successfully sold, txid: {}", txId);
+			log.info("Successfully sold {} for {}, txid: {}", amount, selectedPrice, txId);
 			nftSupplier.markTokenSold(tokens);
 
 			if (fundAddress != paymentAddress) {
