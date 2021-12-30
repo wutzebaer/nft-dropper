@@ -53,7 +53,7 @@
       </code>
       NFTs at
       <code>
-        <span th:text="${tokenPrice}"></span> ₳
+        <span th:text="${not tierPrices.empty ? tierPrices[0].price : tokenPrice}"></span> ₳
       </code>
       left
     </p>
