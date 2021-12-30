@@ -174,7 +174,7 @@ public class NftMinter {
 		String buyerAddress = transactionInputs.get(0).getSourceAddress();
 		long funds = transactionInputs.stream().mapToLong(e -> e.getValue()).sum();
 
-		long selectedPrice = findTierPrice(funds);
+		long selectedPrice = findTierPrice(funds / 1_000_000);
 
 		int amount = (int) NumberUtils.min(
 				funds / (selectedPrice * 1_000_000),
