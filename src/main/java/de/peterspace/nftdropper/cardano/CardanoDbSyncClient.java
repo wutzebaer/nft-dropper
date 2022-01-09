@@ -24,7 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class CardanoDbSyncClient {
 
-	private static final String utxoQuery = "select max(encode(t2.hash::bytea, 'hex')) txhash, max(uv.\"index\") txix, max(uv.value) \"value\", max(to2.stake_address_id) stake_address, max(to2.address) source_address\r\n"
+	private static final String utxoQuery = "select uv.id uvid, max(encode(t2.hash::bytea, 'hex')) txhash, max(uv.\"index\") txix, max(uv.value) \"value\", max(to2.stake_address_id) stake_address, max(to2.address) source_address, '' policyId, '' assetName, null metadata\r\n"
 			+ "from utxo_view uv\r\n"
 			+ "join tx t2 on t2.id = uv.tx_id \r\n"
 			+ "join tx_in ti on ti.tx_in_id = uv.tx_id\r\n"
@@ -32,9 +32,21 @@ public class CardanoDbSyncClient {
 			+ "join tx_out to3 on to3.tx_id = uv.tx_id and to3.\"index\" = uv.\"index\" \r\n"
 			+ "left join ma_tx_out mto on mto.tx_out_id=to3.id\r\n"
 			+ "where \r\n"
-			+ "uv.address = ? and mto.id is NULL\r\n"
+			+ "uv.address = ? \r\n"
 			+ "group by uv.id\r\n"
-			+ "order by uv.id";
+			+ "union\r\n"
+			+ "select uv.id uvid, max(encode(t2.hash::bytea, 'hex')) txhash, max(uv.\"index\") txix, max(mto.quantity) \"value\", max(to2.stake_address_id) stake_address, max(to2.address) source_address, encode(mto.\"policy\" ::bytea, 'hex') policyId, convert_from(mto.name, 'UTF8') assetName,\r\n"
+			+ "(select json->encode(mto.\"policy\" ::bytea, 'hex')->convert_from(mto.name, 'UTF8') from tx_metadata tm where tm.tx_id = (select max(tx_id) from ma_tx_mint mtm where mtm.\"policy\"=mto.\"policy\" and mtm.\"name\"=mto.\"name\") and key=721) metadata\r\n"
+			+ "from utxo_view uv\r\n"
+			+ "join tx t2 on t2.id = uv.tx_id \r\n"
+			+ "join tx_in ti on ti.tx_in_id = uv.tx_id\r\n"
+			+ "join tx_out to2 on to2.tx_id = ti.tx_out_id and to2.\"index\" = ti.tx_out_index\r\n"
+			+ "join tx_out to3 on to3.tx_id = uv.tx_id and to3.\"index\" = uv.\"index\" \r\n"
+			+ "join ma_tx_out mto on mto.tx_out_id=to3.id\r\n"
+			+ "where \r\n"
+			+ "uv.address = ? \r\n"
+			+ "group by uv.id, mto.\"policy\", mto.name\r\n"
+			+ "order by uvid, policyId, assetName";
 
 	@Value("${cardano-db-sync.url}")
 	String url;
@@ -67,10 +79,11 @@ public class CardanoDbSyncClient {
 		try (Connection connection = hds.getConnection()) {
 			PreparedStatement getTxInput = connection.prepareStatement(utxoQuery);
 			getTxInput.setString(1, offerAddress);
+			getTxInput.setString(2, offerAddress);
 			ResultSet result = getTxInput.executeQuery();
 			List<TransactionInputs> offerFundings = new ArrayList<TransactionInputs>();
 			while (result.next()) {
-				offerFundings.add(new TransactionInputs(result.getString(1), result.getInt(2), result.getLong(3), result.getLong(4), result.getString(5)));
+				offerFundings.add(new TransactionInputs(result.getString(2), result.getInt(3), result.getLong(4), result.getLong(5), result.getString(6), result.getString(7), result.getString(8), result.getString(9)));
 			}
 			return offerFundings;
 		} catch (Exception e) {

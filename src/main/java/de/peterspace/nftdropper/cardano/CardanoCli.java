@@ -1,13 +1,16 @@
 package de.peterspace.nftdropper.cardano;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 
+import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -15,6 +18,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 
+import de.peterspace.nftdropper.cardano.exceptions.OutputTooSmallUTxOException;
 import de.peterspace.nftdropper.cardano.exceptions.PolicyExpiredException;
 import de.peterspace.nftdropper.cardano.exceptions.UnexpectedTokensException;
 import de.peterspace.nftdropper.cardano.exceptions.UnprocessedTransactionsException;
@@ -214,10 +218,46 @@ public class CardanoCli {
 		return new Policy(policyString, policyId);
 	}
 
-	public String mint(List<TransactionInputs> transactionInputs, TransactionOutputs transactionOutputs, JSONObject metaData, String changeAddress, Address paymentAddress, Policy policy) throws Exception {
+	public long calculateFee(List<TransactionInputs> transactionInputs, TransactionOutputs transactionOutputs, JSONObject metaData, Address paymentAddress, Policy policy) throws Exception {
+		buildTransaction(transactionInputs, transactionOutputs, metaData, policy, 0);
+
+		String filename = prefixFilename(TRANSACTION_UNSIGNED_FILENAME);
+
+		ArrayList<String> cmd = new ArrayList<String>();
+		cmd.addAll(List.of(cardanoCliCmd));
+
+		cmd.add("transaction");
+		cmd.add("calculate-min-fee");
+
+		cmd.add("--tx-body-file");
+		cmd.add(filename);
+
+		cmd.add("--tx-in-count");
+		long inCount = transactionInputs.stream().map(txin -> txin.getTxhash() + txin.getTxix()).distinct().count();
+		cmd.add("" + inCount);
+
+		cmd.add("--tx-out-count");
+		long outCount = transactionOutputs.getOutputs().size();
+		cmd.add("" + outCount);
+
+		cmd.add("--witness-count");
+		cmd.add("" + 2);
+
+		cmd.addAll(List.of(networkMagicArgs));
+
+		cmd.add("--protocol-params-file");
+		cmd.add(prefixFilename(PROTOCOL_JSON_FILENAME));
+
+		String feeString = ProcessUtil.runCommand(cmd.toArray(new String[0]));
+		long fee = Long.valueOf(feeString.split(" ")[0]);
+
+		return fee;
+	}
+
+	public String mint(List<TransactionInputs> transactionInputs, TransactionOutputs transactionOutputs, JSONObject metaData, Address paymentAddress, Policy policy, long fees) throws Exception {
 		try {
 
-			buildTransaction(transactionInputs, transactionOutputs, metaData, changeAddress, policy);
+			buildTransaction(transactionInputs, transactionOutputs, metaData, policy, fees);
 			signTransaction(paymentAddress);
 			String txId = getTransactionId();
 			submitTransaction();
@@ -230,6 +270,8 @@ public class CardanoCli {
 				throw new PolicyExpiredException(e.getMessage());
 			} else if (e.getMessage().contains("Non-Ada assets are unbalanced")) {
 				throw new UnexpectedTokensException(e.getMessage());
+			} else if (e.getMessage().contains("OutputTooSmallUTxO")) {
+				throw new OutputTooSmallUTxOException(e.getMessage());
 			} else {
 				throw e;
 			}
@@ -265,14 +307,17 @@ public class CardanoCli {
 		return txId;
 	}
 
-	private void buildTransaction(List<TransactionInputs> transactionInputs, TransactionOutputs transactionOutputs, JSONObject metaData, String changeAddress, Policy policy) throws Exception {
+	private void buildTransaction(List<TransactionInputs> transactionInputs, TransactionOutputs transactionOutputs, JSONObject metaData, Policy policy, long fees) throws Exception {
 		{
 
 			ArrayList<String> cmd = new ArrayList<String>();
 			cmd.addAll(List.of(cardanoCliCmd));
 
 			cmd.add("transaction");
-			cmd.add("build");
+			cmd.add("build-raw");
+
+			cmd.add("--fee");
+			cmd.add("" + fees);
 
 			for (TransactionInputs utxo : transactionInputs) {
 				cmd.add("--tx-in");
@@ -284,14 +329,19 @@ public class CardanoCli {
 				cmd.add(a);
 			}
 
-			List<Entry<String, Long>> assetEntries = transactionOutputs.getOutputs().values()
+			Set<String> outputAssets = transactionOutputs.getOutputs().values()
 					.stream()
-					.flatMap(a -> a.entrySet().stream())
-					.filter(e -> !StringUtils.isBlank(e.getKey()))
-					.collect(Collectors.toList());
+					.flatMap(a -> a.keySet().stream())
+					.filter(e -> !StringUtils.isBlank(e))
+					.collect(Collectors.toSet());
 			List<String> mints = new ArrayList<String>();
-			for (Entry<String, Long> assetEntry : assetEntries) {
-				mints.add(String.format("%d %s", assetEntry.getValue(), assetEntry.getKey()));
+			for (String assetEntry : outputAssets) {
+				long inputAmount = transactionInputs.stream().filter(i -> Objects.equals(formatCurrency(i.getPolicyId(), i.getAssetName()), assetEntry)).mapToLong(i -> i.getValue()).sum();
+				long outputAmount = transactionOutputs.getOutputs().values().stream().flatMap(a -> a.entrySet().stream()).filter(e -> Objects.equals(e.getKey(), assetEntry)).mapToLong(e -> e.getValue()).sum();
+				long needed = outputAmount - inputAmount;
+				if (needed > 0) {
+					mints.add(String.format("%d %s", needed, assetEntry));
+				}
 			}
 			if (mints.size() > 0) {
 				cmd.add("--mint");
@@ -306,15 +356,6 @@ public class CardanoCli {
 				cmd.add("--metadata-json-file");
 				cmd.add(prefixFilename(TRANSACTION_METADATA_JSON_FILENAME));
 			}
-
-			cmd.add("--change-address");
-			cmd.add(changeAddress);
-
-			cmd.addAll(List.of(networkMagicArgs));
-			cmd.add("--alonzo-era");
-
-			cmd.add("--witness-override");
-			cmd.add("2");
 
 			cmd.add("--out-file");
 			cmd.add(prefixFilename(TRANSACTION_UNSIGNED_FILENAME));
@@ -357,6 +398,14 @@ public class CardanoCli {
 
 			fileUtil.removeFile(skeyFilename);
 
+		}
+	}
+
+	private String formatCurrency(String policyId, String assetName) {
+		if (StringUtils.isBlank(assetName)) {
+			return policyId;
+		} else {
+			return policyId + "." + Hex.encodeHexString(assetName.getBytes(StandardCharsets.UTF_8));
 		}
 	}
 

@@ -6,15 +6,17 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -24,6 +26,8 @@ import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
+import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,6 +37,7 @@ import org.springframework.stereotype.Component;
 import de.peterspace.nftdropper.cardano.CardanoCli;
 import de.peterspace.nftdropper.cardano.CardanoDbSyncClient;
 import de.peterspace.nftdropper.cardano.CardanoNode;
+import de.peterspace.nftdropper.cardano.exceptions.OutputTooSmallUTxOException;
 import de.peterspace.nftdropper.cardano.exceptions.UnexpectedTokensException;
 import de.peterspace.nftdropper.cardano.exceptions.UnprocessedTransactionsException;
 import de.peterspace.nftdropper.model.Address;
@@ -49,6 +54,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @RequiredArgsConstructor
 public class NftMinter {
+
+	SecureRandom sr = new SecureRandom();
 
 	@Value("${use.captcha}")
 	private boolean useCaptcha;
@@ -67,6 +74,9 @@ public class NftMinter {
 
 	@Value("${donate}")
 	private boolean donate;
+
+	@Value("${santo.riverDigging.policyId}")
+	private String santoRiverDiggingPolicyId;
 
 	private final CardanoCli cardanoCli;
 	private final CardanoNode cardanoNode;
@@ -141,15 +151,17 @@ public class NftMinter {
 
 		long minFunds = tierPrices.isEmpty() ? tokenPrice : tierPrices.get(0).getAmount() * tierPrices.get(0).getPrice();
 
+		boolean mintsLeft = (tokenMaxAmount - fundAddress.getTokensMinted()) > 0;
+
 		List<List<TransactionInputs>> validTransactionInputGroups = transactionInputGroups
 				.values()
 				.stream()
-				.filter(g -> nftSupplier.tokensLeft() == 0 || g.stream().mapToLong(e -> e.getValue()).sum() >= (minFunds * 1_000_000))
+				.filter(g -> !mintsLeft && getSantoRiverDiggingToken(offerFundings).isEmpty() || nftSupplier.tokensLeft() == 0 || hasEnoughFunds(minFunds, g) || hasEnoughSantoRiverDiggingTokenFunds(g))
 				.collect(Collectors.toList());
 
 		for (List<TransactionInputs> validTransactionInputGroup : validTransactionInputGroups) {
 			try {
-				if (nftSupplier.tokensLeft() > 0 && (tokenMaxAmount - fundAddress.getTokensMinted()) > 0) {
+				if (nftSupplier.tokensLeft() > 0 && (mintsLeft || hasEnoughSantoRiverDiggingTokenFunds(validTransactionInputGroup))) {
 					sell(fundAddress, validTransactionInputGroup);
 				} else {
 					refund(fundAddress, validTransactionInputGroup);
@@ -172,14 +184,26 @@ public class NftMinter {
 	private void sell(Address fundAddress, List<TransactionInputs> transactionInputs) throws DecoderException, Exception, IOException {
 		// determine amount of tokens
 		String buyerAddress = transactionInputs.get(0).getSourceAddress();
-		long funds = transactionInputs.stream().mapToLong(e -> e.getValue()).sum();
+		long funds = transactionInputs.stream().filter(e -> e.getPolicyId().isEmpty()).mapToLong(e -> e.getValue()).sum();
 
-		long selectedPrice = findTierPrice(funds / 1_000_000);
+		Optional<TransactionInputs> santoRiverDiggingToken = getSantoRiverDiggingToken(transactionInputs);
 
-		int amount = (int) NumberUtils.min(
-				funds / (selectedPrice * 1_000_000),
-				tokenMaxAmount - (useCaptcha ? fundAddress.getTokensMinted() : 0),
-				nftSupplier.tokensLeft());
+		long selectedPrice;
+		int amount;
+
+		if (santoRiverDiggingToken.isPresent()) {
+			Map<String, Integer> traitMap = getTraitMap(santoRiverDiggingToken.get());
+			selectedPrice = traitMap.get("Cost");
+			int min = traitMap.get("Lmin").intValue();
+			int max = traitMap.get("Lmax").intValue();
+			amount = min + sr.nextInt((max + 1) - min);
+		} else {
+			selectedPrice = findTierPrice(funds / 1_000_000);
+			amount = (int) NumberUtils.min(
+					funds / (selectedPrice * 1_000_000),
+					tokenMaxAmount - (useCaptcha ? fundAddress.getTokensMinted() : 0));
+		}
+		amount = Math.min(amount, nftSupplier.tokensLeft());
 
 		// select tokens
 		List<TokenData> tokens = nftSupplier.getTokens(amount);
@@ -193,17 +217,33 @@ public class NftMinter {
 		}
 
 		// min output for tokens
-		long minOutput = MinOutputCalculator.calculate(tokens.stream().map(f -> f.assetName()).collect(Collectors.toSet()), 1);
-		transactionOutputs.add(buyerAddress, "", minOutput);
+		long minOutput = 0;
+		if (amount > 0) {
+			minOutput = MinOutputCalculator.calculate(tokens.stream().map(f -> f.assetName()).collect(Collectors.toSet()), 1);
+			transactionOutputs.add(buyerAddress, "", minOutput);
+		}
 
 		// if user paid more than needed
-		long change = funds - amount * (selectedPrice * 1_000_000);
+		long change;
+		if (santoRiverDiggingToken.isPresent()) {
+			Map<String, Integer> traitMap = getTraitMap(santoRiverDiggingToken.get());
+			change = funds - (traitMap.get("Cost") * 1_000_000);
+		} else {
+			change = funds - amount * (selectedPrice * 1_000_000);
+		}
 		if (change > 0) {
 			transactionOutputs.add(buyerAddress, "", change);
 		}
 
 		if (donate) {
 			transactionOutputs.add(cardanoNode.getDonationAddress(), "", 1_000_000);
+		}
+
+		// send input tokens to seller
+		if (transactionInputs.stream().filter(e -> !e.getPolicyId().isEmpty()).map(f -> f.getPolicyId()).distinct().count() > 0) {
+			transactionInputs.stream().filter(e -> !e.getPolicyId().isEmpty()).forEach(i -> {
+				transactionOutputs.add(sellerAddress, formatCurrency(i.getPolicyId(), i.getAssetName()), i.getValue());
+			});
 		}
 
 		// build metadata
@@ -217,8 +257,12 @@ public class NftMinter {
 		}
 		JSONObject metaData = new JSONObject().put("721", new JSONObject().put(policy.getPolicyId(), policyMetadata).put("version", "1.0"));
 
+		transactionOutputs.add(sellerAddress, "", 1_000_000);
+
 		try {
-			String txId = cardanoCli.mint(transactionInputs, transactionOutputs, metaData, sellerAddress, fundAddress, policy);
+			long fees = cardanoCli.calculateFee(transactionInputs, transactionOutputs, metaData, fundAddress, policy);
+			transactionOutputs.getOutputs().get(sellerAddress).put("", funds - change - fees - minOutput - (donate ? 1_000_000 : 0));
+			String txId = cardanoCli.mint(transactionInputs, transactionOutputs, metaData, fundAddress, policy, fees);
 			log.info("Successfully sold {} for {}, txid: {}", amount, selectedPrice, txId);
 			nftSupplier.markTokenSold(tokens);
 
@@ -232,6 +276,9 @@ public class NftMinter {
 			log.error("User {} sent tokens, blacklisting: {}", buyerAddress, e.getMessage());
 		} catch (UnprocessedTransactionsException e) {
 			log.error("User {} has unprocessed transactions", buyerAddress, e.getMessage());
+		} catch (OutputTooSmallUTxOException e) {
+			log.error("User {} has send tokens with to few ada", buyerAddress, e.getMessage());
+			blacklist.addAll(transactionInputs);
 		}
 	}
 
@@ -239,16 +286,62 @@ public class NftMinter {
 		// determine amount of tokens
 		String buyerAddress = transactionInputs.get(0).getSourceAddress();
 
+		long funds = transactionInputs.stream().filter(e -> e.getPolicyId().isEmpty()).mapToLong(e -> e.getValue()).sum();
+
 		TransactionOutputs transactionOutputs = new TransactionOutputs();
 
+		if (transactionInputs.stream().filter(e -> !e.getPolicyId().isEmpty()).map(f -> f.getPolicyId()).distinct().count() > 0) {
+			transactionInputs.stream().filter(e -> !e.getPolicyId().isEmpty()).forEach(i -> {
+				transactionOutputs.add(buyerAddress, formatCurrency(i.getPolicyId(), i.getAssetName()), i.getValue());
+			});
+		}
+
+		transactionOutputs.add(buyerAddress, "", 1_000_000);
+
 		try {
-			String txId = cardanoCli.mint(transactionInputs, transactionOutputs, null, buyerAddress, fundAddress, policy);
+			long fees = cardanoCli.calculateFee(transactionInputs, transactionOutputs, null, fundAddress, policy);
+			transactionOutputs.getOutputs().get(buyerAddress).put("", funds - fees);
+			String txId = cardanoCli.mint(transactionInputs, transactionOutputs, null, fundAddress, policy, fees);
 			log.info("Successfully refunded, txid: {}", txId);
 		} catch (UnexpectedTokensException e) {
 			log.error("User {} sent tokens, blacklisting: {}", buyerAddress, e.getMessage());
 		} catch (UnprocessedTransactionsException e) {
 			log.error("User {} has unprocessed transactions", buyerAddress, e.getMessage());
+		} catch (OutputTooSmallUTxOException e) {
+			log.error("User {} has send tokens with to few ada", buyerAddress, e.getMessage());
+			blacklist.addAll(transactionInputs);
 		}
+	}
+
+	private boolean hasEnoughFunds(long minFunds, List<TransactionInputs> g) {
+		return g.stream().filter(e -> e.getPolicyId().isEmpty()).mapToLong(e -> e.getValue()).sum() >= (minFunds * 1_000_000);
+	}
+
+	private boolean hasEnoughSantoRiverDiggingTokenFunds(List<TransactionInputs> g) {
+		Optional<TransactionInputs> stantoRiverDiggingToken = getSantoRiverDiggingToken(g);
+		if (stantoRiverDiggingToken.isPresent()) {
+			Map<String, Integer> traitMap = getTraitMap(stantoRiverDiggingToken.get());
+			return hasEnoughFunds(traitMap.get("Cost"), g);
+		} else {
+			return false;
+		}
+	}
+
+	private Optional<TransactionInputs> getSantoRiverDiggingToken(List<TransactionInputs> g) {
+		Optional<TransactionInputs> stantoRiverDiggingToken = g.stream()
+				.filter(e -> !StringUtils.isBlank(santoRiverDiggingPolicyId) && Objects.equals(e.getPolicyId(), santoRiverDiggingPolicyId))
+				.findFirst();
+		return stantoRiverDiggingToken;
+	}
+
+	private Map<String, Integer> getTraitMap(TransactionInputs e) throws JSONException {
+		JSONArray traits = new JSONObject(e.getMetaData()).getJSONArray("traits");
+		Map<String, Integer> traitMap = new HashMap<>();
+		for (int i = 0; i < traits.length(); i++) {
+			String[] bits = traits.getString(i).split("=");
+			traitMap.put(bits[0], Integer.valueOf(bits[1]));
+		}
+		return traitMap;
 	}
 
 }

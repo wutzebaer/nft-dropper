@@ -9,4 +9,7 @@ public class TransactionInputs {
 	long value;
 	long stakeAddressId;
 	String sourceAddress;
+	String policyId;
+	String assetName;
+	String metaData;
 }
