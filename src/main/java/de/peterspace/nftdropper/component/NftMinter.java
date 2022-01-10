@@ -261,7 +261,10 @@ public class NftMinter {
 
 		try {
 			long fees = cardanoCli.calculateFee(transactionInputs, transactionOutputs, metaData, fundAddress, policy);
-			transactionOutputs.getOutputs().get(sellerAddress).put("", funds - change - fees - minOutput - (donate ? 1_000_000 : 0));
+			transactionOutputs.add(sellerAddress, "", -1_000_000);
+			transactionOutputs.add(sellerAddress, "", funds - change - fees - minOutput - (donate ? 1_000_000 : 0));
+
+
 			String txId = cardanoCli.mint(transactionInputs, transactionOutputs, metaData, fundAddress, policy, fees);
 			log.info("Successfully sold {} for {}, txid: {}", amount, selectedPrice, txId);
 			nftSupplier.markTokenSold(tokens);
