@@ -24,6 +24,7 @@ import javax.annotation.PostConstruct;
 
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.json.JSONArray;
@@ -156,7 +157,14 @@ public class NftMinter {
 		List<List<TransactionInputs>> validTransactionInputGroups = transactionInputGroups
 				.values()
 				.stream()
-				.filter(g -> !mintsLeft && getSantoRiverDiggingToken(offerFundings).isEmpty() || nftSupplier.tokensLeft() == 0 || hasEnoughFunds(minFunds, g) || hasEnoughSantoRiverDiggingTokenFunds(g))
+				.filter(g -> {
+					try {
+						return !mintsLeft && getSantoRiverDiggingToken(offerFundings).isEmpty() || nftSupplier.tokensLeft() == 0 || hasEnoughFunds(minFunds, g) || hasEnoughSantoRiverDiggingTokenFunds(g);
+					} catch (Exception e) {
+						log.error("Input " + g.get(0).getSourceAddress() + " failed for " + fundAddress.getAddress() + " failed", e);
+						return false;
+					}
+				})
 				.collect(Collectors.toList());
 
 		for (List<TransactionInputs> validTransactionInputGroup : validTransactionInputGroups) {
@@ -168,7 +176,7 @@ public class NftMinter {
 				}
 				blacklist.addAll(validTransactionInputGroup);
 			} catch (Exception e) {
-				log.error(fundAddress.getAddress() + " failed", e);
+				log.error("Input " + validTransactionInputGroup.get(0).getSourceAddress() + " failed for " + fundAddress.getAddress() + " failed", e);
 			}
 		}
 	}
@@ -193,7 +201,7 @@ public class NftMinter {
 
 		if (santoRiverDiggingToken.isPresent()) {
 			Map<String, Integer> traitMap = getTraitMap(santoRiverDiggingToken.get());
-			selectedPrice = traitMap.get("Cost");
+			selectedPrice = getCostTraitFromMap(traitMap);
 			int min = traitMap.get("Lmin").intValue();
 			int max = traitMap.get("Lmax").intValue();
 			amount = min + sr.nextInt((max + 1) - min);
@@ -227,7 +235,7 @@ public class NftMinter {
 		long change;
 		if (santoRiverDiggingToken.isPresent()) {
 			Map<String, Integer> traitMap = getTraitMap(santoRiverDiggingToken.get());
-			change = funds - (traitMap.get("Cost") * 1_000_000);
+			change = funds - (getCostTraitFromMap(traitMap) * 1_000_000);
 		} else {
 			change = funds - amount * (selectedPrice * 1_000_000);
 		}
@@ -263,7 +271,6 @@ public class NftMinter {
 			long fees = cardanoCli.calculateFee(transactionInputs, transactionOutputs, metaData, fundAddress, policy);
 			transactionOutputs.add(sellerAddress, "", -1_000_000);
 			transactionOutputs.add(sellerAddress, "", funds - change - fees - minOutput - (donate ? 1_000_000 : 0));
-
 
 			String txId = cardanoCli.mint(transactionInputs, transactionOutputs, metaData, fundAddress, policy, fees);
 			log.info("Successfully sold {} for {}, txid: {}", amount, selectedPrice, txId);
@@ -324,10 +331,14 @@ public class NftMinter {
 		Optional<TransactionInputs> stantoRiverDiggingToken = getSantoRiverDiggingToken(g);
 		if (stantoRiverDiggingToken.isPresent()) {
 			Map<String, Integer> traitMap = getTraitMap(stantoRiverDiggingToken.get());
-			return hasEnoughFunds(traitMap.get("Cost"), g);
+			return hasEnoughFunds(getCostTraitFromMap(traitMap), g);
 		} else {
 			return false;
 		}
+	}
+
+	private Integer getCostTraitFromMap(Map<String, Integer> traitMap) {
+		return ObjectUtils.firstNonNull(traitMap.get("Cost"), traitMap.get("C"));
 	}
 
 	private Optional<TransactionInputs> getSantoRiverDiggingToken(List<TransactionInputs> g) {
