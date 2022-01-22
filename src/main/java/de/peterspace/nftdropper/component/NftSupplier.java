@@ -7,6 +7,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import javax.annotation.PostConstruct;
 
@@ -58,6 +59,10 @@ public class NftSupplier {
 
 	public List<TokenData> getTokens(int amount) {
 		return new ArrayList<>(availableTokens.subList(0, amount));
+	}
+
+	public Optional<TokenData> getToken(String assetName) {
+		return availableTokens.stream().filter(t -> t.getFilename().equals(assetName)).findFirst();
 	}
 
 	public void markTokenSold(List<TokenData> tokenDatas) throws IOException {

@@ -159,7 +159,7 @@ public class CardanoCli {
 		String vkey = fileUtil.readFile(vkeyFilename);
 		String addressLiteral = fileUtil.readFile(addressFilename);
 
-		Address address = new Address(addressLiteral, skey, vkey, 0);
+		Address address = new Address(addressLiteral, skey, vkey, 0, null);
 		return address;
 	}
 

@@ -1,5 +1,6 @@
 package de.peterspace.nftdropper.cardano;
 
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -10,6 +11,7 @@ import java.util.List;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
+import org.apache.commons.codec.DecoderException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -23,6 +25,27 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @RequiredArgsConstructor
 public class CardanoDbSyncClient {
+
+	private static final String tokenQuery = "select\r\n"
+			+ "encode(ma.policy::bytea, 'hex') policyId,\r\n"
+			+ "ma.name tokenName,\r\n"
+			+ "mtm.quantity,\r\n"
+			+ "encode(t.hash ::bytea, 'hex') txId,\r\n"
+			+ "tm.json->encode(ma.policy::bytea, 'hex')->encode(ma.name::bytea, 'escape') json,\r\n"
+			+ "t.invalid_before,\r\n"
+			+ "t.invalid_hereafter,\r\n"
+			+ "b.block_no,\r\n"
+			+ "b.epoch_no,\r\n"
+			+ "b.epoch_slot_no, \r\n"
+			+ "t.id tid, \r\n"
+			+ "mtm.id mintid,\r\n"
+			+ "b.slot_no,\r\n"
+			+ "(select sum(quantity) from ma_tx_mint mtm2 where mtm2.ident = mtm.ident) total_supply\r\n"
+			+ "from ma_tx_mint mtm\r\n"
+			+ "join tx t on t.id = mtm.tx_id \r\n"
+			+ "left join tx_metadata tm on tm.tx_id = t.id \r\n"
+			+ "join block b on b.id = t.block_id \r\n"
+			+ "join multi_asset ma on ma.id = mtm.ident ";
 
 	private static final String utxoQuery = "select uv.id uvid, max(encode(t2.hash::bytea, 'hex')) txhash, max(uv.\"index\") txix, max(uv.value) \"value\", max(to2.stake_address_id) stake_address, max(to2.address) source_address, '' policyId, '' assetName, null metadata\r\n"
 			+ "from utxo_view uv\r\n"
@@ -98,6 +121,46 @@ public class CardanoDbSyncClient {
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	@lombok.Value
+	public static class MintedToken {
+		String assetName;
+		String json;
+	}
+
+	public List<MintedToken> policyTokens(String policyId) throws DecoderException {
+
+		try (Connection connection = hds.getConnection()) {
+
+			String findTokenQuery = "SELECT * FROM (\r\n";
+			findTokenQuery += "SELECT U.*, row_number() over(PARTITION by  policyId, tokenName order by mintid desc) rn FROM (\r\n";
+
+			findTokenQuery += CardanoDbSyncClient.tokenQuery;
+			findTokenQuery += "WHERE ";
+			findTokenQuery += "encode(ma.policy::bytea, 'hex')=?";
+			findTokenQuery += ") AS U where U.quantity > 0 ";
+			findTokenQuery += ") as numbered ";
+			findTokenQuery += "where rn = 1 ";
+			findTokenQuery += "order by epoch_no, tokenname ";
+
+			PreparedStatement getTxInput = connection.prepareStatement(findTokenQuery);
+			getTxInput.setObject(1, policyId);
+
+			ResultSet result = getTxInput.executeQuery();
+			List<MintedToken> tokenDatas = parseTokenResultset(result);
+			return tokenDatas;
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	private List<MintedToken> parseTokenResultset(ResultSet result) throws SQLException {
+		List<MintedToken> tokenDatas = new ArrayList<>();
+		while (result.next()) {
+			tokenDatas.add(new MintedToken(new String(result.getBytes(2), StandardCharsets.UTF_8), result.getString(5)));
+		}
+		return tokenDatas;
 	}
 
 }

@@ -91,6 +91,8 @@ public class NftMinter {
 	private List<TierPrice> tierPrices = new ArrayList<>();
 
 	private Address paymentAddress;
+
+	@Getter
 	private Policy policy;
 
 	@lombok.Value
@@ -150,9 +152,8 @@ public class NftMinter {
 				.filter(of -> !blacklist.contains(of))
 				.collect(Collectors.groupingBy(of -> of.getStakeAddressId(), LinkedHashMap::new, Collectors.toList()));
 
-		long minFunds = tierPrices.isEmpty() ? tokenPrice : tierPrices.get(0).getAmount() * tierPrices.get(0).getPrice();
-
-		boolean mintsLeft = (tokenMaxAmount - fundAddress.getTokensMinted()) > 0;
+		final long minFunds = calculateMinFunds(fundAddress);
+		final boolean mintsLeft = calculateMintsLeft(fundAddress);
 
 		List<List<TransactionInputs>> validTransactionInputGroups = transactionInputGroups
 				.values()
@@ -181,6 +182,34 @@ public class NftMinter {
 		}
 	}
 
+	private boolean calculateMintsLeft(Address fundAddress) {
+		if (!StringUtils.isEmpty(fundAddress.getAssetName())) {
+			Optional<TokenData> token = nftSupplier.getToken(fundAddress.getAssetName());
+			if (token.isPresent()) {
+				return true;
+			} else {
+				return false;
+			}
+		} else {
+			return (tokenMaxAmount - fundAddress.getTokensMinted()) > 0;
+		}
+	}
+
+	private long calculateMinFunds(Address fundAddress) {
+		if (!StringUtils.isEmpty(fundAddress.getAssetName())) {
+			Optional<TokenData> token = nftSupplier.getToken(fundAddress.getAssetName());
+			if (token.isPresent()) {
+				return token.get().getMetaData().getLong("_price");
+			} else {
+				return 0;
+			}
+		} else if (!tierPrices.isEmpty()) {
+			return tierPrices.get(0).getAmount() * tierPrices.get(0).getPrice() * 1_000_000;
+		} else {
+			return tokenPrice * 1_000_000;
+		}
+	}
+
 	private String formatCurrency(String policyId, String assetName) {
 		if (StringUtils.isBlank(assetName)) {
 			return policyId;
@@ -190,31 +219,33 @@ public class NftMinter {
 	}
 
 	private void sell(Address fundAddress, List<TransactionInputs> transactionInputs) throws DecoderException, Exception, IOException {
-		// determine amount of tokens
 		String buyerAddress = transactionInputs.get(0).getSourceAddress();
 		long funds = transactionInputs.stream().filter(e -> e.getPolicyId().isEmpty()).mapToLong(e -> e.getValue()).sum();
-
 		Optional<TransactionInputs> santoRiverDiggingToken = getSantoRiverDiggingToken(transactionInputs);
+		Optional<TokenData> addressToken = nftSupplier.getToken(fundAddress.getAssetName());
 
-		long selectedPrice;
+		// determine amount of tokens and price
 		int amount;
-
-		if (santoRiverDiggingToken.isPresent()) {
+		long selectedPrice;
+		if (addressToken.isPresent()) {
+			amount = 1;
+			selectedPrice = addressToken.get().getMetaData().getLong("_price");
+		} else if (santoRiverDiggingToken.isPresent()) {
 			Map<String, Integer> traitMap = getTraitMap(santoRiverDiggingToken.get());
-			selectedPrice = getCostTraitFromMap(traitMap);
+			selectedPrice = getCostTraitFromMap(traitMap) * 1_000_000;
 			int min = traitMap.get("Lmin").intValue();
 			int max = traitMap.get("Lmax").intValue();
 			amount = min + sr.nextInt((max + 1) - min);
 		} else {
-			selectedPrice = findTierPrice(funds / 1_000_000);
+			selectedPrice = findTierPrice(funds / 1_000_000) * 1_000_000;
 			amount = (int) NumberUtils.min(
-					funds / (selectedPrice * 1_000_000),
+					funds / selectedPrice,
 					tokenMaxAmount - (useCaptcha ? fundAddress.getTokensMinted() : 0));
 		}
 		amount = Math.min(amount, nftSupplier.tokensLeft());
 
 		// select tokens
-		List<TokenData> tokens = nftSupplier.getTokens(amount);
+		List<TokenData> tokens = addressToken.isPresent() ? List.of(addressToken.get()) : nftSupplier.getTokens(amount);
 		log.info("selling {} tokens to {} : {}", amount, buyerAddress, tokens);
 
 		TransactionOutputs transactionOutputs = new TransactionOutputs();
@@ -237,7 +268,7 @@ public class NftMinter {
 			Map<String, Integer> traitMap = getTraitMap(santoRiverDiggingToken.get());
 			change = funds - (getCostTraitFromMap(traitMap) * 1_000_000);
 		} else {
-			change = funds - amount * (selectedPrice * 1_000_000);
+			change = funds - amount * (selectedPrice);
 		}
 		if (change > 0) {
 			transactionOutputs.add(buyerAddress, "", change);
@@ -258,8 +289,10 @@ public class NftMinter {
 		JSONObject policyMetadata = new JSONObject();
 		for (TokenData tokenData : tokens) {
 			JSONObject metaData = tokenData.getMetaData();
-			try (InputStream newInputStream = Files.newInputStream(Paths.get(tokenDir, tokenData.getFilename()))) {
-				metaData.put("image", "ipfs://" + ipfsClient.addFile(newInputStream));
+			if (!metaData.has("image")) {
+				try (InputStream newInputStream = Files.newInputStream(Paths.get(tokenDir, tokenData.getFilename()))) {
+					metaData.put("image", "ipfs://" + ipfsClient.addFile(newInputStream));
+				}
 			}
 			policyMetadata.put(tokenData.assetName(), metaData);
 		}
@@ -324,7 +357,7 @@ public class NftMinter {
 	}
 
 	private boolean hasEnoughFunds(long minFunds, List<TransactionInputs> g) {
-		return g.stream().filter(e -> e.getPolicyId().isEmpty()).mapToLong(e -> e.getValue()).sum() >= (minFunds * 1_000_000);
+		return g.stream().filter(e -> e.getPolicyId().isEmpty()).mapToLong(e -> e.getValue()).sum() >= (minFunds);
 	}
 
 	private boolean hasEnoughSantoRiverDiggingTokenFunds(List<TransactionInputs> g) {

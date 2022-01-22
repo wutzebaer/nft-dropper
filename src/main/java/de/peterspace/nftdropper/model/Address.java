@@ -1,5 +1,6 @@
 package de.peterspace.nftdropper.model;
 
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.validation.constraints.Min;
@@ -28,4 +29,7 @@ public class Address {
 	@NotNull
 	@Min(0)
 	Integer tokensMinted;
+
+	@Column(unique = true)
+	String assetName;
 }

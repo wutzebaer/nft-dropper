@@ -12,6 +12,6 @@ public class TokenData {
 	JSONObject metaData;
 
 	public String assetName() {
-		return StringUtils.left(FilenameUtils.getBaseName(filename).replaceAll("[^a-zA-Z0-9]", ""), 32);
+		return StringUtils.left(FilenameUtils.getBaseName(filename), 32);
 	}
 }
