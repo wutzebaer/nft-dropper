@@ -1,11 +1,56 @@
+@font-face {
+  font-family: uwch;
+  src: url(uwch.ttf);
+}
+
+.btn {
+	padding: .375rem 0;
+}
+
 body {
 	background-color: #eee;
 	background-image: url("/images/concrete-wall-2.png");
 	margin-bottom: 100px;
+	/*font-family: 'Courier New', monospace;*/
+	font-family: uwch,verdana,arial,helvetica,sans-serif;
 }
 
 .footer {
   background-color: rgba(100, 100, 100, 0.1);
+}
+
+.header {
+	text-align: center;
+	margin-bottom: 100px;
+	/*font-weight: bold;*/
+}
+
+.lead {
+  font-size: 1.22rem;
+}
+
+.title-image {
+	background-color: lightgray;
+	border-radius: 30px;
+	overflow: hidden;
+	display: inline-block;
+	width: 400px;
+	height: 300px;
+	margin-bottom: 16px;
+}
+
+.filter {
+	display: flex;
+	justify-content: center;
+	flex-direction: row;
+}
+.filter input {
+	width: 400px;
+}
+
+.header img {
+	filter: drop-shadow(4px 4px 10px #000);
+	height: 300px;
 }
 
 .shop-item-container {
@@ -85,6 +130,10 @@ body {
 	cursor: pointer;
 }
 
+.shop-item .hover-gif {
+	filter: drop-shadow(4px 4px 10px #000);
+	margin-bottom: 20px;
+}
 
 .nowrap {
 	white-space: nowrap;
@@ -96,8 +145,11 @@ body {
 	width: 320px;
 }
 
+
 .hover-gif {
 	background-color: lightgray;
+	border-radius: 30px;
+	overflow: hidden;
 }
 
 .hover-gif img, .hover-gif video {
@@ -153,6 +205,8 @@ body {
   }
 }
 
+
+
 .crt {
 	position: relative;
 }
@@ -182,3 +236,5 @@ body {
       background-position:0px 25px;
    }
 }
+
+

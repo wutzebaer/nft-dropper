@@ -12,6 +12,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -288,7 +289,13 @@ public class NftMinter {
 		// build metadata
 		JSONObject policyMetadata = new JSONObject();
 		for (TokenData tokenData : tokens) {
-			JSONObject metaData = tokenData.getMetaData();
+			JSONObject metaData = new JSONObject(tokenData.getMetaData().toString());
+			Iterator<String> keys = metaData.keys();
+			while (keys.hasNext()) {
+				if (keys.next().startsWith("_")) {
+					keys.remove();
+				}
+			}
 			if (!metaData.has("image")) {
 				try (InputStream newInputStream = Files.newInputStream(Paths.get(tokenDir, tokenData.getFilename()))) {
 					metaData.put("image", "ipfs://" + ipfsClient.addFile(newInputStream));

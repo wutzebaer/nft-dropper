@@ -122,3 +122,15 @@ setInterval(function() {
 	updateEscapes()
 }, 1000);
 updateEscapes();
+
+
+$('.filter input').on('input', e => {
+	let filter = e.target.value.toUpperCase();
+	$('.shop-item').each((i, el) => {
+		if ($(el).text().toUpperCase().indexOf(filter) === -1) {
+			$(el).hide();
+		} else {
+			$(el).show();
+		}
+	});
+})

@@ -1,5 +1,6 @@
 package de.peterspace.nftdropper.component;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -42,12 +43,14 @@ public class NftSupplier {
 		soldFolder = Files.createDirectories(sourceFolder.resolve("sold"));
 
 		Path metaDataPath = sourceFolder.resolve("metadata.json");
-		JSONObject metaData = new JSONObject(new JSONTokener(Files.newBufferedReader(metaDataPath)));
-		totalTokens = metaData.keySet().size();
-		for (String filename : metaData.keySet()) {
-			Path tokenFile = Paths.get(tokenDir, filename);
-			if (Files.isRegularFile(tokenFile)) {
-				foundTokens.add(new TokenData(filename, metaData.getJSONObject(filename)));
+		try (BufferedReader bufferedReader = Files.newBufferedReader(metaDataPath);) {
+			JSONObject metaData = new JSONObject(new JSONTokener(bufferedReader));
+			totalTokens = metaData.keySet().size();
+			for (String filename : metaData.keySet()) {
+				Path tokenFile = Paths.get(tokenDir, filename);
+				if (Files.isRegularFile(tokenFile)) {
+					foundTokens.add(new TokenData(filename, metaData.getJSONObject(filename)));
+				}
 			}
 		}
 		Collections.shuffle(foundTokens);
