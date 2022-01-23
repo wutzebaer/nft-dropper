@@ -1,0 +1,184 @@
+body {
+	background-color: #eee;
+	background-image: url("/images/concrete-wall-2.png");
+	margin-bottom: 100px;
+}
+
+.footer {
+  background-color: rgba(100, 100, 100, 0.1);
+}
+
+.shop-item-container {
+	display: flex;
+	flex-flow: row wrap;
+}
+
+.shop-item {
+	flex: 100%;
+	margin-bottom: 60px;
+	overflow: hidden;
+}
+
+@media ( min-width :1200px) {
+	.shop-item {
+		flex: 33% 0 0;
+	}
+}
+
+.shop-item-head {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+
+.shop-item h4 {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	width: 100%;
+	text-align: center;
+}
+
+.shop-item[decrypted=true] .key, .address-value {
+	color: green;
+}
+
+.shop-item[decrypted=true] .key:after {
+	content: ' ₳';
+}
+
+.shop-item[decrypted=false] .btn-clipboard,
+.shop-item[decrypted=false] .address,
+.shop-item[decrypted=false] .alert,
+.shop-item[decrypted=false] .granted-sign
+{
+	display: none;
+}
+
+.shop-item[escaped=true] .decryption-seq,
+.shop-item[escaped=true] .address,
+.shop-item[escaped=true] .granted-sign
+{
+	display: none;
+}
+
+.shop-item[running=true] .hover-gif .animation,
+.shop-item[decrypted=true] .hover-gif .animation,
+.shop-item[escaped=true]:hover .hover-gif .animation
+{
+	display: block;
+}
+
+.shop-item[running=true] .hover-gif .static,
+.shop-item[decrypted=true] .hover-gif .static,
+.shop-item[escaped=true]:hover .hover-gif .static
+{
+	display: none;
+}
+
+.shop-item[escaped=false] .escaped-sign
+{
+	display: none;
+}
+
+.shop-item[decrypted=false][escaped=false] .hover-gif {
+	cursor: pointer;
+}
+
+
+.nowrap {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.attributes {
+	width: 320px;
+}
+
+.hover-gif {
+	background-color: lightgray;
+}
+
+.hover-gif img, .hover-gif video {
+	width: 320px;
+	height: 256px;
+}
+
+.hover-gif .animation {
+	display: none;
+}
+
+
+
+.granted-sign {
+	text-align: center;
+	padding: 10px 0;
+	margin: 10px 0;
+	border: 5px solid green;
+	background-color: lightgreen;
+	color: green;
+	border-radius: 7px;
+	font-weight: bold;
+}
+
+.escaped-sign {
+	text-align: center;
+	padding: 10px 0;
+	margin: 10px 0;
+	border: 5px solid red;
+	background-color: orange;
+	color: red;
+	border-radius: 7px;
+	font-weight: bold;
+}
+
+.shop-item a {
+	color: inherit;
+	text-decoration: none;
+}
+
+.alert {
+	text-align: center;
+	margin: 10px 0;
+}
+
+.blink {
+	animation: blinker 2s linear infinite;
+}
+
+@keyframes blinker {
+  50% {
+    opacity: 0.2;
+  }
+}
+
+.crt {
+	position: relative;
+}
+
+.crt:after {
+	content: '';
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	right: 0px;
+	bottom: 0px;
+	z-index: 1000;
+	background: repeating-linear-gradient(0deg, #111 0px, #111 1px, transparent 2px,
+		transparent 5px);
+	background-size: 100% 5px;
+	animation: lines 2s linear infinite;
+	opacity: 0.3;
+	pointer-events: none;
+}
+
+
+ @keyframes lines {
+   0% {
+      background-position:0px 0px;
+   }
+   100% {
+      background-position:0px 25px;
+   }
+}

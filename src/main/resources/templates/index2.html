@@ -1,0 +1,132 @@
+<!DOCTYPE HTML>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+<title>SCP Anomaly</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+<link th:href="@{/styles/styles.css}" rel="stylesheet" />
+<link th:href="@{/styles/styles_anomaly.css}" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.1/font/bootstrap-icons.css">
+</head>
+<body>
+
+	<header>
+		<nav class="navbar navbar-expand-lg navbar-dark" style="background-color: #343a40;">
+			<div class="container-fluid">
+				<a class="navbar-brand" href="#"><img class="static" th:src="@{/images/logo.png}" height="50" /> SCP Anomaly</a>
+				<!--
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+          <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+            <li class="nav-item"><a class="nav-link active" aria-current="page" href="#">Home</a></li>
+            <li class="nav-item"><a class="nav-link" href="#">Link</a></li>
+            <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false"> Dropdown </a>
+              <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                <li><a class="dropdown-item" href="#">Action</a></li>
+                <li><a class="dropdown-item" href="#">Another action</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="#">Something else here</a></li>
+              </ul></li>
+            <li class="nav-item"><a class="nav-link disabled">Disabled</a></li>
+          </ul>
+          <form class="d-flex">
+            <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search">
+            <button class="btn btn-outline-success" type="submit">Search</button>
+          </form>
+        </div>
+         -->
+			</div>
+		</nav>
+	</header>
+
+	<!-- Begin page content -->
+	<main role="main" class="container">
+		<h1 style="text-align: center;">CLASSIFIED</h1>
+		<p class="lead" style="text-align: center;">⚠ ACCESS BY UNAUTHORIZED PERSONNEL IS STRICTLY PROHIBITED PERPETRATORS WILL BE TRACKED, LOCATED, AND DETAINED ⚠</p>
+
+		<p style="text-align: center;">
+			<img class="static" th:src="@{/images/SCP_Foundation_(emblem).svg}" height="350" /> <br /> SCP Series I (<span th:text="${policyId}"></span>)
+		<h3 style="text-align: center;"></h3>
+		<br /> <br />
+		</p>
+
+		<div class="shop-item-container">
+			<div th:each="shopItem : ${shopItems}" class="shop-item" running="false" decrypted="false" escaped="false" th:assetName="${shopItem.assetName}">
+				<div class="shop-item-head">
+					<h4 th:text="${shopItem.metaData.getString('name')}"></h4>
+					<div>
+						<div class="hover-gif crt">
+							<img class="animation" loading="lazy" th:src="${'https://ipfs.cardano-tools.io/ipfs/' + shopItem.metaData.getString('preview')}">
+							<img class="static" th:src="@{/images/noise.png}" />
+						</div>
+					</div>
+					<div class="attributes">
+						<div>
+							<b>Item #</b> <span th:text="${shopItem.metaData.getString('item #')}"></span>
+						</div>
+						<div>
+							<b>Name</b> <span th:text="${shopItem.metaData.getString('name')}"></span>
+						</div>
+						<div class="address nowrap" style="display: none1;">
+							<b>Escape address</b>
+							<button type="button" class="btn btn-clipboard" data-clipboard-action="copy" th:data-clipboard-target="${'#' + shopItem.assetName.replace('.', '') + '_address'}" data-bs-toggle="tooltip" data-bs-placement="top" title="Decryption seq. copied to clipboard">
+								<i class="bi-clipboard"></i>
+							</button>
+							<span class="address-value" th:id="${shopItem.assetName.replace('.', '') + '_address'}"></span> <img class="spinner" height="15" th:src="@{/images/loading-buffering.gif}" />
+						</div>
+						<div class="decryption-seq nowrap">
+							<b>Decryption seq.</b>
+							<button type="button" class="btn btn-clipboard" data-clipboard-action="copy" th:data-clipboard-target="${'#' + shopItem.assetName.replace('.', '') + '_key'}" data-bs-toggle="tooltip" data-bs-placement="top" title="Decryption seq. copied to clipboard">
+								<i class="bi-clipboard"></i>
+							</button>
+							<span th:id="${shopItem.assetName.replace('.', '') + '_key'}" class="key" th:key="${shopItem.metaData.getString('price')}" i="0">[ENCRYPTED]</span>
+							<div class="progress" style="display: none;">
+								<div class="progress-bar" role="progressbar"></div>
+							</div>
+							<div class="form-check" style="display: none;">
+								<label class="form-check-label"> <input autocomplete="off" class="form-check-input" type="checkbox" value="">Auto decrypt
+								</label>
+							</div>
+						</div>
+						<!-- <div class="alert alert-warning blink" role="alert">⚠ Containment breach imminent ⚠</div>  -->
+						<div class="granted-sign blink">ACCESS GRANTED</div>
+						<a target="_blank"><div class="escaped-sign blink">SUBJECT ESCAPED</div></a>
+						<div>
+							<b>Description</b> <span th:text="${shopItem.metaData.getString('description')}"></span>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<h3>Terms &amp; Conditions</h3>
+		<p>
+			NFTs will be sent to your wallet address once payment is received. We limit maximum quantity to <span th:text="${tokenMaxAmount}"></span> NFTs per Transaction. Please use a Daedalus, Yoroi or Adalite wallet. Thanks
+		</p>
+	</main>
+
+	<footer class="footer">
+		<div class="container">
+			<span class="text-muted">Powered by <a target="_blank" href="https://cardano-tools.io">cardano-tools.io</a> and <a href="https://adapools.org/pool/3bd3996595321d951291b11e1331061c5d8659d9e69390536dfc922c" target="_blank">[EURO]-Pool</a></span>
+		</div>
+	</footer>
+
+	<script th:inline="javascript">
+		/*<![CDATA[*/
+		var useCaptcha = /*[[${useCaptcha}]]*/false;
+		var tierPrices = /*[[${tierPrices}]]*/[];
+		var tokenPrice = /*[[${tokenPrice}]]*/0;
+		var policyId = /*[[${policyId}]]*/'';
+		/*]]>*/
+	</script>
+	<script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+	<script src="https://code.jquery.com/pep/0.4.3/pep.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.0/clipboard.min.js"></script>
+	<script th:src="@{/scripts/scripts.js}" rel="stylesheet"></script>
+	<script th:src="@{/scripts/scripts_anomaly.js}" rel="stylesheet"></script>
+</body>
+</html>
