@@ -34,9 +34,13 @@ body {
 	border-radius: 30px;
 	overflow: hidden;
 	display: inline-block;
-	width: 400px;
-	height: 300px;
 	margin-bottom: 16px;
+	filter: drop-shadow(4px 4px 10px #000);
+	max-width: 100%;
+}
+
+.title-image img {
+	max-width: 100%;
 }
 
 .filter {
@@ -48,10 +52,7 @@ body {
 	width: 400px;
 }
 
-.header img {
-	filter: drop-shadow(4px 4px 10px #000);
-	height: 300px;
-}
+
 
 .shop-item-container {
 	display: flex;
@@ -62,6 +63,10 @@ body {
 	flex: 100%;
 	margin-bottom: 60px;
 	overflow: hidden;
+
+	display: flex;
+	flex-direction: column;
+	align-items: center;
 }
 
 @media ( min-width :1200px) {
@@ -70,11 +75,13 @@ body {
 	}
 }
 
-.shop-item-head {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
+
+.shop-item > * {
+	width: 320px;
+	max-width: 100%;
+
 }
+
 
 .shop-item h4 {
 	white-space: nowrap;
@@ -82,6 +89,33 @@ body {
 	text-overflow: ellipsis;
 	width: 100%;
 	text-align: center;
+}
+
+.shop-item .hover-gif {
+	filter: drop-shadow(4px 4px 10px #000);
+	margin: 0 20px 20px 20px;
+	background-color: lightgray;
+	border-radius: 30px;
+	overflow: hidden;
+	position: relative;
+}
+@media ( min-width :400px) {
+	.shop-item .hover-gif {
+		margin: 0 0 20px 0;
+	}
+}
+
+.hover-gif img, .hover-gif video {
+	width: 100%;
+	height: auto;
+}
+
+.hover-gif .animation {
+	position: absolute;
+	top: 0;
+	left: 0;
+	bottom: 0;
+	right: 0;
 }
 
 .shop-item[decrypted=true] .key, .address-value {
@@ -107,6 +141,10 @@ body {
 	display: none;
 }
 
+.hover-gif .animation {
+	display: none;
+}
+
 .shop-item[running=true] .hover-gif .animation,
 .shop-item[decrypted=true] .hover-gif .animation,
 .shop-item[escaped=true]:hover .hover-gif .animation
@@ -118,7 +156,7 @@ body {
 .shop-item[decrypted=true] .hover-gif .static,
 .shop-item[escaped=true]:hover .hover-gif .static
 {
-	display: none;
+	opacity: 0;
 }
 
 .shop-item[escaped=false] .escaped-sign
@@ -130,35 +168,10 @@ body {
 	cursor: pointer;
 }
 
-.shop-item .hover-gif {
-	filter: drop-shadow(4px 4px 10px #000);
-	margin-bottom: 20px;
-}
-
 .nowrap {
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
-}
-
-.attributes {
-	width: 320px;
-}
-
-
-.hover-gif {
-	background-color: lightgray;
-	border-radius: 30px;
-	overflow: hidden;
-}
-
-.hover-gif img, .hover-gif video {
-	width: 320px;
-	height: 256px;
-}
-
-.hover-gif .animation {
-	display: none;
 }
 
 

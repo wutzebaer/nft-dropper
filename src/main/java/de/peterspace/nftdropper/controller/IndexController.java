@@ -41,7 +41,9 @@ public class IndexController {
 		model.addAttribute("paymentAddress", nftMinter.getPaymentAddress());
 		model.addAttribute("siteKey", siteKey);
 		model.addAttribute("useCaptcha", useCaptcha);
+		model.addAttribute("shopItems", shopItemService.getShopItems());
 		model.addAttribute("policyId", nftMinter.getPolicy().getPolicyId());
+		model.addAttribute("availableTokens", nftSupplier.getAvailableTokens());
 		return "index";
 	}
 
@@ -57,6 +59,7 @@ public class IndexController {
 		model.addAttribute("useCaptcha", useCaptcha);
 		model.addAttribute("shopItems", shopItemService.getShopItems());
 		model.addAttribute("policyId", nftMinter.getPolicy().getPolicyId());
+		model.addAttribute("availableTokens", nftSupplier.getAvailableTokens());
 		return "index2";
 	}
 

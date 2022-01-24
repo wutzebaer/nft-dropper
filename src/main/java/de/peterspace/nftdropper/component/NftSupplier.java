@@ -9,6 +9,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 
@@ -59,6 +61,11 @@ public class NftSupplier {
 		}
 		availableTokens = foundTokens;
 	}
+
+	public Set<String> getAvailableTokens() {
+		return availableTokens.stream().map(TokenData::assetName).collect(Collectors.toSet());
+	}
+
 
 	public List<TokenData> getTokens(int amount) {
 		return new ArrayList<>(availableTokens.subList(0, amount));
