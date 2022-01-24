@@ -51,10 +51,8 @@
 			<div class="title-image crt">
 				<img src="https://ipfs.cardano-tools.io/ipfs/Qmc5fdfoDJGcKaP8SeHoX4k6ubwoF4ptKqprCQjfVGmZoM" />
 			</div>
-			<p>In order to prevent data loss of subject files SCP-Foundation decided to migrate all records to the cardano-plattform.
-			Since all records are encrypted they must be decrypted before extraction.
-			Please deploy the extracted Files to [EURO]-Pool in order to be authorized to access SCP Series II.</p>
-			<p>
+			<p>In order to prevent data loss of subject files SCP-Foundation decided to migrate all records to the cardano-plattform. Since all records are encrypted they must be decrypted before extraction. Please deploy the extracted Files to [EURO]-Pool in order to be authorized to access SCP Series II.</p>
+			<p style="word-break: break-word;">
 				SCP Series I (<span th:text="${policyId}"></span>)
 			</p>
 			<div class="form-group filter">
@@ -65,55 +63,54 @@
 
 		<div class="shop-item-container">
 			<div th:each="shopItem : ${shopItems}" class="shop-item" running="false" decrypted="false" th:escaped="${availableTokens.contains(shopItem.assetName) ? 'false' : 'true'}" th:assetName="${shopItem.assetName}">
-					<h4 th:text="${shopItem.metaData.getString('name')}"></h4>
+				<h4 th:text="${shopItem.metaData.getString('name')}"></h4>
+				<div>
+					<div class="hover-gif crt">
+						<img class="animation" loading="lazy" th:src="${'https://ipfs.cardano-tools.io/ipfs/' + shopItem.metaData.getString('preview')}"> <img class="static" th:src="@{/images/noise.png}" />
+					</div>
+				</div>
+				<div class="attributes">
 					<div>
-						<div class="hover-gif crt">
-							<img class="animation" loading="lazy" th:src="${'https://ipfs.cardano-tools.io/ipfs/' + shopItem.metaData.getString('preview')}">
-							<img class="static" th:src="@{/images/noise.png}" />
+						<b>Item #</b> <span th:text="${shopItem.metaData.getString('item #')}"></span>
+					</div>
+					<div>
+						<b>Name</b> <span th:text="${shopItem.metaData.getString('name')}"></span>
+					</div>
+					<div class="address nowrap" style="display: none1;">
+						<b>Extraction addr.</b>
+						<button type="button" class="btn btn-clipboard" data-clipboard-action="copy" th:data-clipboard-target="${'#' + shopItem.assetName.replace('.', '') + '_address'}" data-bs-toggle="tooltip" data-bs-placement="top" title="Extraction address copied to clipboard">
+							<i class="bi-clipboard"></i>
+						</button>
+						<span class="address-value" th:id="${shopItem.assetName.replace('.', '') + '_address'}"></span> <img class="spinner" height="15" th:src="@{/images/loading-buffering.gif}" />
+					</div>
+					<div class="decryption-seq nowrap">
+						<b>Decryption seq.</b>
+						<button type="button" class="btn btn-clipboard" data-clipboard-action="copy" th:data-clipboard-target="${'#' + shopItem.assetName.replace('.', '') + '_key'}" data-bs-toggle="tooltip" data-bs-placement="top" title="Decryption seq. copied to clipboard">
+							<i class="bi-clipboard"></i>
+						</button>
+						<span th:id="${shopItem.assetName.replace('.', '') + '_key'}" class="key" th:key="${shopItem.metaData.getString('price')}" i="0">[ENCRYPTED]</span>
+						<div class="progress" style="display: none;">
+							<div class="progress-bar" role="progressbar"></div>
+						</div>
+						<div class="form-check" style="display: none;">
+							<label class="form-check-label"> <input autocomplete="off" class="form-check-input" type="checkbox" value="">Auto decrypt
+							</label>
 						</div>
 					</div>
-					<div class="attributes">
-						<div>
-							<b>Item #</b> <span th:text="${shopItem.metaData.getString('item #')}"></span>
-						</div>
-						<div>
-							<b>Name</b> <span th:text="${shopItem.metaData.getString('name')}"></span>
-						</div>
-						<div class="address nowrap" style="display: none1;">
-							<b>Extraction addr.</b>
-							<button type="button" class="btn btn-clipboard" data-clipboard-action="copy" th:data-clipboard-target="${'#' + shopItem.assetName.replace('.', '') + '_address'}" data-bs-toggle="tooltip" data-bs-placement="top" title="Extraction address copied to clipboard">
-								<i class="bi-clipboard"></i>
-							</button>
-							<span class="address-value" th:id="${shopItem.assetName.replace('.', '') + '_address'}"></span> <img class="spinner" height="15" th:src="@{/images/loading-buffering.gif}" />
-						</div>
-						<div class="decryption-seq nowrap">
-							<b>Decryption seq.</b>
-							<button type="button" class="btn btn-clipboard" data-clipboard-action="copy" th:data-clipboard-target="${'#' + shopItem.assetName.replace('.', '') + '_key'}" data-bs-toggle="tooltip" data-bs-placement="top" title="Decryption seq. copied to clipboard">
-								<i class="bi-clipboard"></i>
-							</button>
-							<span th:id="${shopItem.assetName.replace('.', '') + '_key'}" class="key" th:key="${shopItem.metaData.getString('price')}" i="0">[ENCRYPTED]</span>
-							<div class="progress" style="display: none;">
-								<div class="progress-bar" role="progressbar"></div>
-							</div>
-							<div class="form-check" style="display: none;">
-								<label class="form-check-label"> <input autocomplete="off" class="form-check-input" type="checkbox" value="">Auto decrypt
-								</label>
-							</div>
-						</div>
-						<!-- <div class="alert alert-warning blink" role="alert">⚠ Containment breach imminent ⚠</div>  -->
-						<div class="granted-sign blink">ACCESS GRANTED</div>
-						<a target="_blank"><div class="escaped-sign blink">SUBJECT EXTRACTED</div></a>
-						<div>
-							<b>Description</b> <span th:text="${shopItem.metaData.getString('description')}"></span>
-						</div>
+					<!-- <div class="alert alert-warning blink" role="alert">⚠ Containment breach imminent ⚠</div>  -->
+					<div class="granted-sign blink">ACCESS GRANTED</div>
+					<a target="_blank" th:href="${'https://pool.pm/' + policyId + '.' + shopItem.assetName}">
+						<div class="escaped-sign blink">SUBJECT EXTRACTED</div>
+					</a>
+					<div>
+						<b>Description</b> <span th:text="${shopItem.metaData.getString('description')}"></span>
 					</div>
+				</div>
 			</div>
 		</div>
 
 		<h3>Additional Information</h3>
-		<p>
-			DO NOT SEND THE DECRYPTION SEQUENCE FROM AN EXCHANGE
-		</p>
+		<p>DO NOT SEND THE DECRYPTION SEQUENCE FROM AN EXCHANGE</p>
 	</main>
 
 	<footer class="footer">

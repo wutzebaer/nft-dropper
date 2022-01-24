@@ -1,4 +1,5 @@
 async function sha256(message) {
+	try {
 	// encode as UTF-8
 	const msgBuffer = new TextEncoder().encode(message);
 
@@ -11,32 +12,12 @@ async function sha256(message) {
 	// convert bytes to hex string
 	const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 	return hashHex;
+	}
+	catch (e) {
+	   // Anweisungen für jeden Fehler
+	   alert(e); // Fehler-Objekt an die Error-Funktion geben
+	}
 }
-
-$('.shop-item .form-check').click(e => {
-	let shopItem = $(e.currentTarget).closest('.shop-item');
-	let checked = $(e.currentTarget).find('.form-check-input').prop("checked");
-	if (!checked) {
-		stopDecrypt(shopItem)
-	} else {
-		startDecrypt(shopItem)
-	}
-});
-
-$('.hover-gif').click(e => {
-	let shopItem = $(e.currentTarget).closest('.shop-item');
-	if (shopItem.attr('running') === 'true' && shopItem.find('.form-check-input').prop("checked") == false) {
-		shopItem.find('.form-check-input').prop("checked", true)
-		return;
-	}
-	if (shopItem.attr('running') === 'true') {
-		stopDecrypt(shopItem)
-		shopItem.find('.form-check-input').prop("checked", false)
-	} else {
-		startDecrypt(shopItem)
-		shopItem.find('.form-check-input').prop("checked", true)
-	}
-});
 
 $('.shop-item').mouseenter(e => {
 	let shopItem = $(e.currentTarget);
@@ -49,6 +30,30 @@ $('.shop-item').mouseleave(e => {
 	}
 });
 
+$('.hover-gif').click(e => {
+	let shopItem = $(e.currentTarget).closest('.shop-item');
+	if (shopItem.attr('running') === 'true' && shopItem.find('.form-check-input').prop("checked") == false) {
+		shopItem.find('.form-check-input').prop("checked", true)
+	}
+	else if (shopItem.attr('running') === 'true') {
+		stopDecrypt(shopItem)
+		shopItem.find('.form-check-input').prop("checked", false)
+	} else {
+		startDecrypt(shopItem)
+		shopItem.find('.form-check-input').prop("checked", true)
+	}
+});
+
+
+$('.shop-item .form-check').click(e => {
+	let shopItem = $(e.currentTarget).closest('.shop-item');
+	let checked = $(e.currentTarget).find('.form-check-input').prop("checked");
+	if (!checked) {
+		stopDecrypt(shopItem)
+	} else {
+		startDecrypt(shopItem)
+	}
+});
 
 function startDecrypt(shopItem) {
 	if (shopItem.attr('running') === 'true' || shopItem.attr('decrypted') === 'true' || shopItem.attr('escaped') === 'true') {
@@ -111,7 +116,6 @@ function updateEscapes() {
 					shopItem.one('mouseenter', () => {
 						shopItem.find('.animation').replaceWith('<video class="animation" src="' + 'https://ipfs.cardano-tools.io/ipfs/' + metaData.files[0].src.replace('ipfs://', '') + '" autoplay loop>');
 					});
-					shopItem.find('a').attr('href', "https://pool.pm/" + policyId + "." + e.assetName);
 				});
 
 			});
