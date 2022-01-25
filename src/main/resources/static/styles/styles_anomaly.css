@@ -43,16 +43,23 @@ body {
 	max-width: 100%;
 }
 
+
+
 .filter {
 	display: flex;
 	justify-content: center;
 	flex-direction: row;
+	margin-bottom: 16px;
 }
 .filter input {
 	width: 400px;
 }
 
 
+.title-progress {
+	background-color: lightgray;
+	margin-bottom: 16px;
+}
 
 .shop-item-container {
 	display: flex;

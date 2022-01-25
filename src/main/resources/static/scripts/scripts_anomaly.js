@@ -112,10 +112,10 @@ function updateEscapes() {
 					let shopItem = $(el);
 					let metaData = JSON.parse(e.json);
 					shopItem.attr('escaped', true);
+					shopItem.attr('running', false);
+					shopItem.attr('decrypted', false);
 					shopItem.find('.static').attr('src', 'https://ipfs.cardano-tools.io/ipfs/' + metaData.image.replace('ipfs://', ''));
-					shopItem.one('mouseenter', () => {
-						shopItem.find('.animation').replaceWith('<video class="animation" src="' + 'https://ipfs.cardano-tools.io/ipfs/' + metaData.files[0].src.replace('ipfs://', '') + '" autoplay loop>');
-					});
+					shopItem.find('.animation').attr('src', 'https://ipfs.cardano-tools.io/ipfs/' + metaData.files[0].src.replace('ipfs://', ''));
 				});
 
 			});
