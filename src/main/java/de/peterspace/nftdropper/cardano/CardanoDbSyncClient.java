@@ -98,7 +98,7 @@ public class CardanoDbSyncClient {
 		hds.setJdbcUrl(url);
 		hds.setUsername(username);
 		hds.setPassword(password);
-		hds.setMaximumPoolSize(30);
+		hds.setMaximumPoolSize(5);
 		hds.setAutoCommit(false);
 	}
 
@@ -141,7 +141,7 @@ public class CardanoDbSyncClient {
 			findTokenQuery += "encode(ma.policy::bytea, 'hex')=?";
 			findTokenQuery += ") AS U where U.quantity > 0 ";
 			findTokenQuery += ") as numbered ";
-			findTokenQuery += "where rn = 1 ";
+			findTokenQuery += "where rn = 1 and total_supply > 0 ";
 			findTokenQuery += "order by epoch_no, tokenname ";
 
 			PreparedStatement getTxInput = connection.prepareStatement(findTokenQuery);

@@ -133,7 +133,7 @@ body {
 	content: ' ₳';
 }
 
-.shop-item[decrypted=false] .btn-clipboard,
+.shop-item[decrypted=false] .decryption-seq .btn-clipboard,
 .shop-item[decrypted=false] .address,
 .shop-item[decrypted=false] .alert,
 .shop-item[decrypted=false] .granted-sign

@@ -60,6 +60,7 @@
 				</div>
 			</div>
 
+<!--
 			<div>
 				<div class="title-progress">
 					Extraction in progress
@@ -68,6 +69,7 @@
 					</div>
 				</div>
 			</div>
+ -->
 
 			<!-- INSTRUCTIONS -->
 			<p>In order to prevent data loss of subject files SCP-Foundation decided to migrate all records to the cardano-plattform. Since all records are encrypted they must be decrypted before extraction. Please deploy the extracted Files to [EURO]-Pool in order to be authorized to access SCP Series II.</p>
@@ -85,7 +87,7 @@
 
 
 		<div class="shop-item-container">
-			<div th:each="shopItem : ${shopItems}" class="shop-item" running="false" decrypted="false" escaped="false" th:assetName="${shopItem.assetName}">
+			<div th:each="shopItem : ${shopItems}" class="shop-item" running="false" decrypted="false" escaped="false" th:assetName="${shopItem.assetName}" th:id="${shopItem.assetName.replace('.', '')}">
 				<h4 th:text="${shopItem.metaData.getString('name')}"></h4>
 				<div>
 					<div class="hover-gif crt">
@@ -102,8 +104,11 @@
 					</div>
 					<div>
 						<b>Name</b> <span th:text="${shopItem.metaData.getString('name')}"></span>
+						<button type="button" class="btn btn-clipboard" data-clipboard-action="copy" th:data-clipboard-text="${'https://scp-anomaly.io#' + shopItem.assetName}" data-bs-toggle="tooltip" data-bs-placement="top" title="Url copied to clipboard">
+							<i class="bi-share"></i>
+						</button>
 					</div>
-					<div class="address nowrap" style="display: none1;">
+					<div class="address nowrap">
 						<b>Extraction addr.</b>
 						<button type="button" class="btn btn-clipboard" data-clipboard-action="copy" th:data-clipboard-target="${'#' + shopItem.assetName.replace('.', '') + '_address'}" data-bs-toggle="tooltip" data-bs-placement="top" title="Extraction address copied to clipboard">
 							<i class="bi-clipboard"></i>
