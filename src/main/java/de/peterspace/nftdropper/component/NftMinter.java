@@ -122,6 +122,7 @@ public class NftMinter {
 		log.info("Policy Id: {}", policy.getPolicyId());
 		log.info("Token Price: {}", tokenPrice);
 		log.info("Tier Prices: {}", tierPrices);
+		log.info("Donate: {}", donate);
 	}
 
 	private long findTierPrice(long ada) {
