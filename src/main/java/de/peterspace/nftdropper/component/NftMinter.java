@@ -256,11 +256,16 @@ public class NftMinter {
 		for (TokenData token : tokens) {
 			transactionOutputs.add(buyerAddress, formatCurrency(policy.getPolicyId(), token.assetName()), 1);
 		}
+		if (santoRiverDiggingToken.isPresent()) {
+			transactionOutputs.add(buyerAddress, formatCurrency(santoRiverDiggingToken.get().getPolicyId(), santoRiverDiggingToken.get().getAssetName()), 1);
+		}
 
 		// min output for tokens
 		long minOutput = 0;
 		if (amount > 0) {
-			minOutput = MinOutputCalculator.calculate(tokens.stream().map(f -> f.assetName()).collect(Collectors.toSet()), 1);
+			long policyCount = transactionOutputs.getOutputs().get(buyerAddress).keySet().stream().map(s -> s.split("\\.")[0]).distinct().count();
+			Set<String> assetNames = transactionOutputs.getOutputs().get(buyerAddress).keySet().stream().map(s -> s.split("\\.")).filter(a -> a.length > 1).map(a -> a[1]).collect(Collectors.toSet());
+			minOutput = MinOutputCalculator.calculate(assetNames, policyCount);
 			transactionOutputs.add(buyerAddress, "", minOutput);
 		}
 
@@ -286,6 +291,11 @@ public class NftMinter {
 				transactionOutputs.add(sellerAddress, formatCurrency(i.getPolicyId(), i.getAssetName()), i.getValue());
 			});
 		}
+		// remove token from seller, be cause it is added to sender
+		if (santoRiverDiggingToken.isPresent()) {
+			transactionOutputs.add(sellerAddress, formatCurrency(santoRiverDiggingToken.get().getPolicyId(), santoRiverDiggingToken.get().getAssetName()), -1);
+		}
+
 
 		// build metadata
 		JSONObject policyMetadata = new JSONObject();

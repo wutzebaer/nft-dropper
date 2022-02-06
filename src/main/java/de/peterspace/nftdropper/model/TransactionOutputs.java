@@ -8,6 +8,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.json.JSONObject;
+
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
@@ -59,6 +61,10 @@ public class TransactionOutputs {
 			}
 			fees--;
 		}
+	}
+
+	public String toString() {
+		return new JSONObject(outputs).toString(3);
 	}
 
 }
