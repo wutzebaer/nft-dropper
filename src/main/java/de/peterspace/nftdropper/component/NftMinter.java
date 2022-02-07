@@ -262,7 +262,7 @@ public class NftMinter {
 
 		// min output for tokens
 		long minOutput = 0;
-		if (amount > 0) {
+		if (amount > 0 || santoRiverDiggingToken.isPresent()) {
 			long policyCount = transactionOutputs.getOutputs().get(buyerAddress).keySet().stream().map(s -> s.split("\\.")[0]).distinct().count();
 			Set<String> assetNames = transactionOutputs.getOutputs().get(buyerAddress).keySet().stream().map(s -> s.split("\\.")).filter(a -> a.length > 1).map(a -> a[1]).collect(Collectors.toSet());
 			minOutput = MinOutputCalculator.calculate(assetNames, policyCount);
@@ -382,7 +382,7 @@ public class NftMinter {
 		Optional<TransactionInputs> stantoRiverDiggingToken = getSantoRiverDiggingToken(g);
 		if (stantoRiverDiggingToken.isPresent()) {
 			Map<String, Integer> traitMap = getTraitMap(stantoRiverDiggingToken.get());
-			return hasEnoughFunds(getCostTraitFromMap(traitMap), g);
+			return hasEnoughFunds(getCostTraitFromMap(traitMap) * 1_000_000, g);
 		} else {
 			return false;
 		}
