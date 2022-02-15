@@ -90,10 +90,12 @@
 			<div th:each="shopItem : ${shopItems}" class="shop-item" running="false" decrypted="false" escaped="false" th:assetName="${shopItem.assetName}" th:id="${shopItem.assetName.replace('.', '')}">
 				<h4 th:text="${shopItem.metaData.getString('name')}"></h4>
 				<div>
-					<div class="hover-gif crt">
-						<img class="static" th:src="@{/images/noise.png}" />
-						<img class="animation" loading="lazy" th:src="${'https://ipfs.cardano-tools.io/ipfs/' + shopItem.metaData.getString('preview')}">
-					</div>
+					<a class="poolpm-link" target="_blank">
+						<div class="hover-gif crt">
+							<img class="static" th:src="@{/images/noise.png}" />
+							<img class="animation" loading="lazy" th:src="${'https://ipfs.cardano-tools.io/ipfs/' + shopItem.metaData.getString('preview')}">
+						</div>
+					</a>
 				</div>
 				<div class="attributes">
 					<div>
@@ -131,7 +133,7 @@
 					</div>
 					<!-- <div class="alert alert-warning blink" role="alert">⚠ Containment breach imminent ⚠</div>  -->
 					<div class="granted-sign blink">ACCESS GRANTED</div>
-					<a target="_blank" th:href="${'https://pool.pm/' + policyId + '.' + shopItem.assetName}">
+					<a class="poolpm-link" target="_blank">
 						<div class="escaped-sign blink">SUBJECT EXTRACTED</div>
 					</a>
 					<div>

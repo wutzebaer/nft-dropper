@@ -116,6 +116,7 @@ function updateEscapes() {
 					shopItem.attr('decrypted', false);
 					shopItem.find('.static').attr('src', 'https://ipfs.cardano-tools.io/ipfs/' + metaData.image.replace('ipfs://', ''));
 					shopItem.find('.animation').attr('src', 'https://ipfs.cardano-tools.io/ipfs/' + metaData.files[0].src.replace('ipfs://', ''));
+					shopItem.find('a.poolpm-link').attr('href', 'https://pool.pm/' + policyId + '.' + e.assetName);
 				});
 
 			});
