@@ -128,9 +128,8 @@ public class CharlySeller {
 			if (countNonBoundAdaFunds < minFunds) {
 				log.info("Sent to less funds, blacklisting utxos {}", utxosWithoutCharlyTokens.get(0).getSourceAddress());
 				blacklist.addAll(utxosWithoutCharlyTokens);
-				break;
+				continue;
 			}
-			final long surplusAda = countNonBoundAdaFunds - minFunds;
 
 			// calcualte amount
 			final long randomAmount = getRandomAmount();
