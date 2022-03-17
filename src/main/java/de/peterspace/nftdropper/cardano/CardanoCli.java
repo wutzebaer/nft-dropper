@@ -360,9 +360,11 @@ public class CardanoCli {
 			cmd.add("--out-file");
 			cmd.add(prefixFilename(TRANSACTION_UNSIGNED_FILENAME));
 
-			long maxSlot = new JSONObject(policy.getPolicy()).getJSONArray("scripts").getJSONObject(0).getLong("slot");
-			cmd.add("--invalid-hereafter");
-			cmd.add("" + maxSlot);
+			if (policy != null) {
+				long maxSlot = new JSONObject(policy.getPolicy()).getJSONArray("scripts").getJSONObject(0).getLong("slot");
+				cmd.add("--invalid-hereafter");
+				cmd.add("" + maxSlot);
+			}
 
 			ProcessUtil.runCommand(cmd.toArray(new String[0]));
 

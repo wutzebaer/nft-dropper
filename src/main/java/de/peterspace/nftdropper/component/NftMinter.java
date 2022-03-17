@@ -59,6 +59,9 @@ public class NftMinter {
 
 	SecureRandom sr = new SecureRandom();
 
+	@Value("${charly.token}")
+	private String charlyToken;
+
 	@Value("${use.captcha}")
 	private boolean useCaptcha;
 
@@ -104,6 +107,11 @@ public class NftMinter {
 
 	@PostConstruct
 	public void init() throws Exception {
+
+		if (!StringUtils.isBlank(charlyToken)) {
+			return;
+		}
+
 		paymentAddress = cardanoCli.createPaymentAddress();
 		policy = cardanoCli.createPolicy(365);
 
@@ -140,6 +148,11 @@ public class NftMinter {
 
 	@Scheduled(cron = "*/1 * * * * *")
 	public void processOffers() throws Exception {
+
+		if (!StringUtils.isBlank(charlyToken)) {
+			return;
+		}
+
 		if (!useCaptcha) {
 			processAddress(paymentAddress);
 		}
@@ -187,11 +200,7 @@ public class NftMinter {
 	private boolean calculateMintsLeft(Address fundAddress) {
 		if (!StringUtils.isEmpty(fundAddress.getAssetName())) {
 			Optional<TokenData> token = nftSupplier.getToken(fundAddress.getAssetName());
-			if (token.isPresent()) {
-				return true;
-			} else {
-				return false;
-			}
+			return token.isPresent();
 		} else {
 			return (tokenMaxAmount - fundAddress.getTokensMinted()) > 0;
 		}
@@ -295,7 +304,6 @@ public class NftMinter {
 		if (santoRiverDiggingToken.isPresent()) {
 			transactionOutputs.add(sellerAddress, formatCurrency(santoRiverDiggingToken.get().getPolicyId(), santoRiverDiggingToken.get().getAssetName()), -1);
 		}
-
 
 		// build metadata
 		JSONObject policyMetadata = new JSONObject();

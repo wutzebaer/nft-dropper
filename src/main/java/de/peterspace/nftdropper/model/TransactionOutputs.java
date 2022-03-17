@@ -1,13 +1,17 @@
 package de.peterspace.nftdropper.model;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
 
 import lombok.Data;
@@ -35,7 +39,7 @@ public class TransactionOutputs {
 	public List<String> toCliFormat() {
 		return outputs
 				.entrySet().stream()
-				.map(addressEntry -> addressEntry.getKey() + "+" +
+				.map(addressEntry -> addressEntry.getKey().split("#")[0] + "+" +
 						addressEntry.getValue()
 								.entrySet().stream()
 								.map(currencyEntry -> (currencyEntry.getValue() + " " + currencyEntry.getKey()).trim())
@@ -65,6 +69,28 @@ public class TransactionOutputs {
 
 	public String toString() {
 		return new JSONObject(outputs).toString(3);
+	}
+
+	public void addChange(List<TransactionInputs> inputs, String changeAddress) {
+		Map<String, Long> inputTokens = inputs.stream().collect(Collectors.groupingBy(i -> formatCurrency(i.getPolicyId(), i.getAssetName()), Collectors.summingLong(TransactionInputs::getValue)));
+		for (Map<String, Long> output : outputs.values()) {
+			for (Entry<String, Long> outputEntry : output.entrySet()) {
+				inputTokens.put(outputEntry.getKey(), inputTokens.getOrDefault(outputEntry.getKey(), 0l) - outputEntry.getValue());
+			}
+		}
+		for (Entry<String, Long> inputEntry : inputTokens.entrySet()) {
+			if (inputEntry.getValue() > 0) {
+				add(changeAddress, inputEntry.getKey(), inputEntry.getValue());
+			}
+		}
+	}
+
+	private String formatCurrency(String policyId, String assetName) {
+		if (StringUtils.isBlank(assetName)) {
+			return policyId;
+		} else {
+			return policyId + "." + Hex.encodeHexString(assetName.getBytes(StandardCharsets.UTF_8));
+		}
 	}
 
 }
