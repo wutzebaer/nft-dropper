@@ -56,6 +56,12 @@ public class IndexController {
 		return "index3";
 	}
 
+	@GetMapping("/bowl")
+	public String bowl(Model model) {
+		addAttributes(model);
+		return "bowl";
+	}
+
 	private void addAttributes(Model model) {
 		if (StringUtils.isBlank(charlyToken)) {
 			model.addAttribute("totalTokens", nftSupplier.getTotalTokens());
@@ -73,7 +79,6 @@ public class IndexController {
 			model.addAttribute("totalTokens", 77777777777l);
 			model.addAttribute("tokenLeft", charlySeller.tokensLeft());
 			model.addAttribute("tokenPrice", tokenPrice);
-			model.addAttribute("tokenMaxAmount", tokenMaxAmount);
 			model.addAttribute("paymentAddress", charlySeller.getPaymentAddress());
 			model.addAttribute("policyId", charlySeller.getCharlyTokenPolicyId());
 		}
