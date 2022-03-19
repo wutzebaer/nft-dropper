@@ -1,0 +1,155 @@
+@font-face {
+	font-family: uwch;
+	src: url(Lobster-Regular.ttf);
+}
+
+body {
+	background-color: #eee;
+	background-image: url("/images/spletna stran_yelow background.png");
+	background-size: 70%;
+	font-family: verdana, arial, helvetica, sans-serif;
+	margin: 0;
+	padding: 0;
+	overflow-x: hidden;
+	font-family: verdana, arial, helvetica, sans-serif;
+}
+
+[data-bs-toggle=modal] {
+	cursor: pointer;
+}
+
+#social-line {
+	display: flex;
+	justify-content: center;
+	font-size: 30px;
+	gap: 10px;
+}
+
+#social-line a {
+	color: inherit;
+}
+
+#logo-line {
+	display: flex;
+	justify-content: center;
+}
+
+#logo-line img {
+	max-width: 400px;
+	width: 50vw;
+}
+
+#header-line {
+	display: flex;
+	justify-content: center;
+	text-align: center;
+}
+
+#header-line h1 {
+	font-family: uwch;
+	font-size: 75px;
+	margin: 0;
+	color: #CC2F2C;
+}
+
+@media ( max-width : 767px) {
+	#header-line h1 {
+		font-size: 45px;
+	}
+}
+
+#button-line {
+	text-align: center;
+	white-space: nowrap;
+	position: relative;
+}
+
+@media ( max-width : 1240px) {
+	#button-line {
+		white-space: inherit;
+	}
+
+	#button-line > * {
+		display: block;
+	}
+}
+
+#button-line img {
+	max-width: 400px;
+	width: 33vw;
+}
+
+#button-line .button-label-top {
+	position: absolute;
+	top: 0;
+	left: 50%;
+	transform: translate(-50%, -100%);
+	font-family: uwch;
+	font-size: 16px;
+	color: #CC2F2C;
+}
+
+#button-line .button-label {
+	position: absolute;
+	bottom: 0;
+	left: 50%;
+	transform: translate(-50%, 100%);
+	font-family: uwch;
+	font-size: 30px;
+	color: #CC2F2C;
+}
+
+#button-line .comming-soon {
+	position: absolute;
+	bottom: 50%;
+	left: 50%;
+	font-family: uwch;
+	font-size: 75px;
+	transform: translate(-50%, 50%) rotate(15deg);
+	color: #CC2F2C;
+}
+
+@media ( max-width : 1240px) {
+	#button-line .button-label-top {
+		font-size: 10px;
+	}
+	#button-line .button-label {
+		font-size: 14px;
+	}
+	#button-line .comming-soon {
+		font-size: 20px;
+	}
+}
+
+.circle-container {
+	position: relative;
+	display: inline-block;
+}
+
+.circle {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	z-index: -1;
+	display: inline-block;
+	max-width: 60vw;
+	width: 700px;
+	aspect-ratio: 1/1;
+	border-radius: 100%;
+	background-color: #EBC78B;
+	opacity: 0.5;
+}
+
+#policy-line {
+	text-align: center;
+	margin-top: 80px;
+	margin-bottom: 50px;
+	font-family: monospace;
+	word-wrap: break-word;
+}
+
+#powered-line {
+	text-align: center;
+	word-wrap: break-word;
+}

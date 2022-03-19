@@ -48,7 +48,9 @@ public class CharlySeller {
 
 	@Value("${charly.token}")
 	private String charlyToken;
+	@Getter
 	private String charlyTokenPolicyId;
+	@Getter
 	private String charlyTokenAssetName;
 
 	@Value("${token.price}")
@@ -64,6 +66,7 @@ public class CharlySeller {
 	@Getter
 	private List<CharlyTier> charlyTiers = new ArrayList<>();
 
+	@Getter
 	private Address paymentAddress;
 
 	private final Set<TransactionInputs> blacklist = new HashSet<>();
@@ -100,6 +103,12 @@ public class CharlySeller {
 				throw new RuntimeException("probabilitySum is not 1: " + probabilitySum);
 			}
 		}
+	}
+
+	public long tokensLeft() {
+		List<TransactionInputs> offerFundings = cardanoDbSyncClient.getOfferFundings(paymentAddress.getAddress());
+		List<TransactionInputs> utxosWithCharlyTokens = getCharlyInputs(offerFundings);
+		return countCharlyFunds(utxosWithCharlyTokens);
 	}
 
 	@Scheduled(cron = "*/1 * * * * *")
