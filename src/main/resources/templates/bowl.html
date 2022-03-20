@@ -19,12 +19,15 @@
 	<h1>Royal Bowl</h1>
 
 	<div id="bowl-content">
-		<p>Before you will use Royal Bowl please read the following:</p>
+		<p>Before using the Royal Bowl please make sure to read and understand the following:</p>
 
 		<ul>
-			<li>Read our Royal Scroll (yea It’s not white, it’s not brown, it’s not yellow)</li>
-			<li>You must use Shelley era wallet, which supports native assets.</li>
-			<li><b>VERY IMPORTANT</b> please check this twice. Do not send funds from an exchange because your founds could be lost and you will not get any $Charly.</li>
+			<li>Read our Royal Scroll carefully (yea It’s not white, it’s not brown, it’s not yellow)</li>
+			<li>Ensure that you use only the Shelley era wallet, which supports native assets.</li>
+			<li><b>VERY IMPORTANT!</b> Please check this twice! NEVER send us any funds from exchanges, because your funds could be lost and you will not get any $Charly.</li>
+			<li>If you need any clarification or have any questions regarding Royal Bowl, please do not hesitate to contact us on Discord. <a style="color: #5865F2" target="_blank" href="https://discord.gg/ArH9udyKTN">
+					<i class="bi bi-discord"></i>
+				</a></li>
 		</ul>
 
 		<p>
@@ -45,7 +48,7 @@
 		</p>
 
 		<p>
-			if you want to receive $Charly tokens please send EXACLTY <b><span th:text="${tokenPrice}"></span> ₳</b> to the provided address above, when you do, our royal treasury will return you 1.51 ₳ together with a random amount of $Charly.
+			In order to receive some $CHARLY tokens please send EXACLTY <b><span th:text="${tokenPrice}"></span> ₳</b> to the provided address above. In return the Royal Treasury will return you approximately 1.5 ₳ together with a random amount of $CHARLY
 		</p>
 
 		<p>
@@ -137,33 +140,6 @@
 			<img th:src="@{/images/logo_small_ct.png}">
 		</a>
 	</p>
-
-
-	<!-- Modal -->
-	<div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-		<div class="modal-dialog modal-dialog-centered modal-xl">
-			<div class="modal-content">
-				<div class="modal-header">
-					<h5 class="modal-title" id="exampleModalLabel">Royal bowl</h5>
-					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-				</div>
-				<div class="modal-body">
-					<p>
-						Hurry up, only
-						<span th:text="${tokenLeft}"></span>
-						$Charly left
-					</p>
-					Please send
-					<span th:text="${tokenPrice}"></span>
-					₳ to
-					<span id="address" th:text="${paymentAddress.address}"></span>
-					<button id="copy-button" type="button" class="btn btn-clipboard" data-clipboard-action="copy" data-clipboard-target="#address" data-bs-toggle="tooltip" data-bs-placement="top" title="Copied address to clipboard">
-						<i class="bi-clipboard"></i>
-					</button>
-				</div>
-			</div>
-		</div>
-	</div>
 
 
 
