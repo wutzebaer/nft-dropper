@@ -258,7 +258,7 @@ public class CardanoCli {
 		try {
 
 			buildTransaction(transactionInputs, transactionOutputs, metaData, policy, fees);
-			signTransaction(paymentAddress);
+			signTransaction(paymentAddress, policy != null);
 			String txId = getTransactionId();
 			submitTransaction();
 			return txId;
@@ -371,7 +371,7 @@ public class CardanoCli {
 		}
 	}
 
-	private void signTransaction(Address paymentAddress) throws Exception {
+	private void signTransaction(Address paymentAddress, boolean signWithPolicy) throws Exception {
 		{
 
 			String skeyFilename = prefixFilename(UUID.randomUUID().toString() + "." + PAYMENT_SKEY_FILENAME);
@@ -385,8 +385,10 @@ public class CardanoCli {
 			cmd.add("--signing-key-file");
 			cmd.add(skeyFilename);
 
-			cmd.add("--signing-key-file");
-			cmd.add(prefixFilename(POLICY_SKEY_FILENAME));
+			if (signWithPolicy) {
+				cmd.add("--signing-key-file");
+				cmd.add(prefixFilename(POLICY_SKEY_FILENAME));
+			}
 
 			cmd.addAll(List.of(networkMagicArgs));
 

@@ -14,6 +14,7 @@ body {
 	font-family: verdana, arial, helvetica, sans-serif;
 }
 
+
 [data-bs-toggle=modal] {
 	cursor: pointer;
 }
@@ -174,4 +175,9 @@ h1 {
 
 #bowl-content > * {
 	max-width: 100%;
+}
+
+.qr-code {
+	max-width: 100%;
+	width: 200px;
 }

@@ -16,9 +16,7 @@
 		<img th:src="@{/images/King Charles_logo.png}">
 	</p>
 
-	<h1>
-		Royal Bowl
-	</h1>
+	<h1>Royal Bowl</h1>
 
 	<div id="bowl-content">
 		<p>Before you will use Royal Bowl please read the following:</p>
@@ -30,10 +28,20 @@
 		</ul>
 
 		<p>
+			<img class="qr-code" th:src="@{/images/charlyqr.jpg}">
+		</p>
+
+		<p>
 			<b><span id="address" th:text="${paymentAddress.address}"></span></b>
 			<button id="copy-button" type="button" class="btn btn-clipboard" data-clipboard-action="copy" data-clipboard-target="#address" data-bs-toggle="tooltip" data-bs-placement="top" title="Copied address to clipboard">
 				<i class="bi-clipboard"></i>
 			</button>
+		</p>
+
+		<p>
+			<a target="_blank" th:href="${'web+cardano:' + paymentAddress.address + '?amount=' + tokenPrice}">
+				<img height="32" th:src="@{/images/yoroi.png}">
+			</a>
 		</p>
 
 		<p>
@@ -46,7 +54,9 @@
 			$Charly left in Tier 1.
 		</p>
 
-		<h3><b>Tier 1 (active)</b></h3>
+		<h3>
+			<b>Tier 1 (active)</b>
+		</h3>
 		<ul>
 			<li>1% chance to receive between 5.257.777 and 10.111.110 $Charly</li>
 			<li>3% chance to receive between 3.842.221 and 5.257.776 $Charly</li>
