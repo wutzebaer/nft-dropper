@@ -14,7 +14,6 @@ body {
 	font-family: verdana, arial, helvetica, sans-serif;
 }
 
-
 [data-bs-toggle=modal] {
 	cursor: pointer;
 }
@@ -62,6 +61,11 @@ h1 {
 	background-color: #EBC78B;
 	opacity: 0.5;
 	z-index: -1;
+	transition: height 0.5s;
+}
+
+#button-line .main-button:hover .circle {
+	height: 110%;
 }
 
 #button-line .main-button .main-button-heading {
@@ -78,6 +82,10 @@ h1 {
 
 #button-line .main-button img {
 	width: 400px;
+}
+
+#button-line .main-button:hover img {
+	filter: drop-shadow(0px 0px 30px rgba(255,215,0, 1.0));
 }
 
 #button-line .main-button .comming-soon {
@@ -173,7 +181,7 @@ h1 {
 	word-wrap: break-word;
 }
 
-#bowl-content > * {
+#bowl-content>* {
 	max-width: 100%;
 }
 

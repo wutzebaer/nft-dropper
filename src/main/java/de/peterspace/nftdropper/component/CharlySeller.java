@@ -174,7 +174,7 @@ public class CharlySeller {
 			transactionOutputs.add(paymentAddress.getAddress() + "#0", formatCurrency(charlyTokenPolicyId, charlyTokenAssetName), charlyLeft % usedCharlyInputCount);
 
 			// seller
-			transactionOutputs.add(sellerAddress, "", minFunds - MinOutputCalculator.calculate(Set.of(charlyTokenAssetName), 1));
+			transactionOutputs.add(sellerAddress, "", minFunds + countAllAdaFunds(reservedUtxosWithCharlyTokens) - (usedCharlyInputCount + 1) * MinOutputCalculator.calculate(Set.of(charlyTokenAssetName), 1));
 
 			List allUsedInputs = ListUtils.union(utxosWithoutCharlyTokens, reservedUtxosWithCharlyTokens);
 
@@ -194,6 +194,12 @@ public class CharlySeller {
 
 		}
 
+	}
+
+	private long countAllAdaFunds(List<TransactionInputs> g) {
+		return g.stream()
+				.filter(of -> StringUtils.isEmpty(of.getPolicyId()) && StringUtils.isEmpty(of.getAssetName()))
+				.mapToLong(e -> e.getValue()).sum();
 	}
 
 	private long countNonBoundAdaFunds(List<TransactionInputs> g) {
