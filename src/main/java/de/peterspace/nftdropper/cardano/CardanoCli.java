@@ -241,7 +241,7 @@ public class CardanoCli {
 		cmd.add("" + outCount);
 
 		cmd.add("--witness-count");
-		cmd.add("" + 2);
+		cmd.add("" + (policy != null ? 2 : 1));
 
 		cmd.addAll(List.of(networkMagicArgs));
 
