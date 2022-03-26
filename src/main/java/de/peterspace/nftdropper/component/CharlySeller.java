@@ -154,7 +154,6 @@ public class CharlySeller {
 			long gatheredCharlies = countCharlyFunds(reservedUtxosWithCharlyTokens) + countCharlyFunds(utxosWithoutCharlyTokens);
 			if (gatheredCharlies < randomAmount) {
 				log.info("Not enough charly left, please start next tier, blacklisting utxos {}", utxosWithoutCharlyTokens.get(0).getSourceAddress());
-				blacklist.addAll(utxosWithoutCharlyTokens);
 				break;
 			}
 
