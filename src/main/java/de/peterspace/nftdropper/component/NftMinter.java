@@ -90,6 +90,7 @@ public class NftMinter {
 	private final IpfsClient ipfsClient;
 	private final AddressRepository addressRepository;
 	private final Set<TransactionInputs> blacklist = new HashSet<>();
+	private final Set<Long> whitelist = new HashSet<>();
 
 	@Getter
 	private List<TierPrice> tierPrices = new ArrayList<>();
@@ -123,6 +124,16 @@ public class NftMinter {
 				tierPrices.add(new TierPrice(Long.parseLong(amount), prices.getLong(amount)));
 			}
 			Collections.sort(tierPrices, Comparator.comparingLong(tp -> tp.amount));
+		}
+
+		Path whitelistPath = sourceFolder.resolve("whitelist");
+		if (Files.exists(whitelistPath)) {
+			List<String> whitelistLines = Files.readAllLines(whitelistPath);
+			whitelistLines.replaceAll(String::trim);
+			Set<Long> findStakeAddressIds = cardanoDbSyncClient.findStakeAddressIds(whitelistLines.toArray(new String[] {}));
+			this.whitelist.addAll(findStakeAddressIds);
+			log.info("Whitelist: {}", whitelistLines);
+			log.info("WhitelistIds: {}", whitelist);
 		}
 
 		log.info("Seller Address: {}", sellerAddress);
@@ -185,7 +196,7 @@ public class NftMinter {
 
 		for (List<TransactionInputs> validTransactionInputGroup : validTransactionInputGroups) {
 			try {
-				if (nftSupplier.tokensLeft() > 0 && (mintsLeft || hasEnoughSantoRiverDiggingTokenFunds(validTransactionInputGroup))) {
+				if (nftSupplier.tokensLeft() > 0 && (mintsLeft || hasEnoughSantoRiverDiggingTokenFunds(validTransactionInputGroup)) && (whitelist.isEmpty() || whitelist.contains(validTransactionInputGroup.get(0).getStakeAddressId()))) {
 					sell(fundAddress, validTransactionInputGroup);
 				} else {
 					refund(fundAddress, validTransactionInputGroup);
