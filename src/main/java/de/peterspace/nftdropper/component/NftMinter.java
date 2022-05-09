@@ -47,7 +47,9 @@ import de.peterspace.nftdropper.model.Policy;
 import de.peterspace.nftdropper.model.TokenData;
 import de.peterspace.nftdropper.model.TransactionInputs;
 import de.peterspace.nftdropper.model.TransactionOutputs;
+import de.peterspace.nftdropper.model.Wallet;
 import de.peterspace.nftdropper.repository.AddressRepository;
+import de.peterspace.nftdropper.repository.WalletRepository;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -89,6 +91,7 @@ public class NftMinter {
 	private final NftSupplier nftSupplier;
 	private final IpfsClient ipfsClient;
 	private final AddressRepository addressRepository;
+	private final WalletRepository walletRepository;
 	private final Set<TransactionInputs> blacklist = new HashSet<>();
 	private final Set<Long> whitelist = new HashSet<>();
 
@@ -138,6 +141,7 @@ public class NftMinter {
 
 		log.info("Seller Address: {}", sellerAddress);
 		log.info("Token Max Amount: {}", tokenMaxAmount);
+		log.info("Token maxAmountWhitelist: {}", tokenMaxAmount);
 		log.info("Policy Id: {}", policy.getPolicyId());
 		log.info("Token Price: {}", tokenPrice);
 		log.info("Tier Prices: {}", tierPrices);
@@ -181,31 +185,24 @@ public class NftMinter {
 		final long minFunds = calculateMinFunds(fundAddress);
 		final boolean mintsLeft = calculateMintsLeft(fundAddress);
 
-		List<List<TransactionInputs>> validTransactionInputGroups = transactionInputGroups
-				.values()
-				.stream()
-				.filter(g -> {
-					try {
-						return !mintsLeft && getSantoRiverDiggingToken(offerFundings).isEmpty() || nftSupplier.tokensLeft() == 0 || hasEnoughFunds(minFunds, g) || hasEnoughSantoRiverDiggingTokenFunds(g);
-					} catch (Exception e) {
-						log.error("Input " + g.get(0).getSourceAddress() + " failed for " + fundAddress.getAddress() + " failed", e);
-						return false;
-					}
-				})
-				.collect(Collectors.toList());
-
-		for (List<TransactionInputs> validTransactionInputGroup : validTransactionInputGroups) {
+		for (List<TransactionInputs> transactionInputGroup : transactionInputGroups.values()) {
 			try {
-				if (nftSupplier.tokensLeft() > 0 && (mintsLeft || hasEnoughSantoRiverDiggingTokenFunds(validTransactionInputGroup)) && (whitelist.isEmpty() || whitelist.contains(validTransactionInputGroup.get(0).getStakeAddressId()))) {
-					sell(fundAddress, validTransactionInputGroup);
-				} else {
-					refund(fundAddress, validTransactionInputGroup);
+				final boolean walletMintsLeft = whitelist.isEmpty() || walletRepository.findById(transactionInputGroup.get(0).getStakeAddressId()).map(w -> w.getTokensMinted()).orElse(0) < tokenMaxAmount;
+				if (!mintsLeft && getSantoRiverDiggingToken(offerFundings).isEmpty()
+						|| !walletMintsLeft && getSantoRiverDiggingToken(offerFundings).isEmpty()
+						|| nftSupplier.tokensLeft() == 0
+						|| (!whitelist.isEmpty() && !whitelist.contains(transactionInputGroup.get(0).getStakeAddressId()))) {
+					refund(fundAddress, transactionInputGroup);
+					blacklist.addAll(transactionInputGroup);
+				} else if (hasEnoughFunds(minFunds, transactionInputGroup) || hasEnoughSantoRiverDiggingTokenFunds(transactionInputGroup)) {
+					sell(fundAddress, transactionInputGroup);
+					blacklist.addAll(transactionInputGroup);
 				}
-				blacklist.addAll(validTransactionInputGroup);
 			} catch (Exception e) {
-				log.error("Input " + validTransactionInputGroup.get(0).getSourceAddress() + " failed for " + fundAddress.getAddress() + " failed", e);
+				log.error("Input " + transactionInputGroup.get(0).getSourceAddress() + " failed for " + fundAddress.getAddress() + " failed", e);
 			}
 		}
+
 	}
 
 	private boolean calculateMintsLeft(Address fundAddress) {
@@ -245,6 +242,7 @@ public class NftMinter {
 		long funds = transactionInputs.stream().filter(e -> e.getPolicyId().isEmpty()).mapToLong(e -> e.getValue()).sum();
 		Optional<TransactionInputs> santoRiverDiggingToken = getSantoRiverDiggingToken(transactionInputs);
 		Optional<TokenData> addressToken = nftSupplier.getToken(fundAddress.getAssetName());
+		Optional<Wallet> wallet = Optional.empty();
 
 		// determine amount of tokens and price
 		int amount;
@@ -252,7 +250,8 @@ public class NftMinter {
 		if (addressToken.isPresent()) {
 			amount = 1;
 			selectedPrice = addressToken.get().getMetaData().getLong("_price");
-		} else if (santoRiverDiggingToken.isPresent()) {
+		}
+		if (santoRiverDiggingToken.isPresent()) {
 			Map<String, Integer> traitMap = getTraitMap(santoRiverDiggingToken.get());
 			selectedPrice = getCostTraitFromMap(traitMap) * 1_000_000;
 			int min = traitMap.get("Lmin").intValue();
@@ -263,6 +262,14 @@ public class NftMinter {
 			amount = (int) NumberUtils.min(
 					funds / selectedPrice,
 					tokenMaxAmount - (useCaptcha ? fundAddress.getTokensMinted() : 0));
+		}
+		if (!whitelist.isEmpty()) {
+			wallet = walletRepository.findById(transactionInputs.get(0).getStakeAddressId());
+			if (wallet.isEmpty()) {
+				wallet = Optional.of(new Wallet(transactionInputs.get(0).getStakeAddressId(), 0));
+			}
+			int walletMintsLeft = tokenMaxAmount - wallet.get().getTokensMinted();
+			amount = Math.min(amount, walletMintsLeft);
 		}
 		amount = Math.min(amount, nftSupplier.tokensLeft());
 
@@ -350,6 +357,11 @@ public class NftMinter {
 				fundAddress.setTokensMinted(fundAddress.getTokensMinted() + amount);
 				addressRepository.save(fundAddress);
 				log.info("{} has {} tokens left", fundAddress.getAddress(), tokenMaxAmount - fundAddress.getTokensMinted());
+			}
+
+			if (wallet.isPresent()) {
+				wallet.get().setTokensMinted(wallet.get().getTokensMinted() + amount);
+				walletRepository.save(wallet.get());
 			}
 
 		} catch (UnexpectedTokensException e) {
