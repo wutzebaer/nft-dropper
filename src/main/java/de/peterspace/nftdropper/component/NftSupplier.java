@@ -2,9 +2,11 @@ package de.peterspace.nftdropper.component;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.nio.file.CopyOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -66,18 +68,20 @@ public class NftSupplier {
 		return availableTokens.stream().map(TokenData::assetName).collect(Collectors.toSet());
 	}
 
-
-	public List<TokenData> getTokens(int amount) {
-		return new ArrayList<>(availableTokens.subList(0, amount));
+	public List<TokenData> claimTokens(int amount) throws IOException {
+		ArrayList<TokenData> tokenDatas = new ArrayList<>(availableTokens.subList(0, Math.min(amount, tokensLeft())));
+		removeTokenFromSale(tokenDatas);
+		return tokenDatas;
 	}
 
 	public Optional<TokenData> getToken(String assetName) {
-		return availableTokens.stream().filter(t -> t.getFilename().equals(assetName)).findFirst();
+		Optional<TokenData> tokenData = availableTokens.stream().filter(t -> t.getFilename().equals(assetName)).findFirst();
+		return tokenData;
 	}
 
-	public void markTokenSold(List<TokenData> tokenDatas) throws IOException {
+	public void removeTokenFromSale(List<TokenData> tokenDatas) throws IOException {
 		for (TokenData tokenData : tokenDatas) {
-			Files.move(sourceFolder.resolve(tokenData.getFilename()), soldFolder.resolve(tokenData.getFilename()));
+			Files.move(sourceFolder.resolve(tokenData.getFilename()), soldFolder.resolve(tokenData.getFilename()), StandardCopyOption.REPLACE_EXISTING);
 		}
 		availableTokens.removeAll(tokenDatas);
 	}

@@ -106,6 +106,25 @@ public class CardanoCli {
 		return jsonObject.getLong("slot");
 	}
 
+	public long calculateMinUtxo(String addressValue) throws Exception {
+		ArrayList<String> cmd = new ArrayList<String>();
+		cmd.addAll(List.of(cardanoCliCmd));
+
+		cmd.add("transaction");
+		cmd.add("calculate-min-required-utxo");
+
+		cmd.add("--protocol-params-file");
+		cmd.add(prefixFilename(PROTOCOL_JSON_FILENAME));
+
+		cmd.add("--tx-out");
+		cmd.add(addressValue);
+
+		String feeString = ProcessUtil.runCommand(cmd.toArray(new String[0]));
+		long fee = Long.valueOf(feeString.split(" ")[1]);
+
+		return fee;
+	}
+
 	public Address createPaymentAddress() throws Exception {
 		String skeyFilename = prefixFilename(PAYMENT_SKEY_FILENAME);
 		String vkeyFilename = prefixFilename(PAYMENT_VKEY_FILENAME);
@@ -218,46 +237,10 @@ public class CardanoCli {
 		return new Policy(policyString, policyId);
 	}
 
-	public long calculateFee(List<TransactionInputs> transactionInputs, TransactionOutputs transactionOutputs, JSONObject metaData, Address paymentAddress, Policy policy) throws Exception {
-		buildTransaction(transactionInputs, transactionOutputs, metaData, policy, 0);
-
-		String filename = prefixFilename(TRANSACTION_UNSIGNED_FILENAME);
-
-		ArrayList<String> cmd = new ArrayList<String>();
-		cmd.addAll(List.of(cardanoCliCmd));
-
-		cmd.add("transaction");
-		cmd.add("calculate-min-fee");
-
-		cmd.add("--tx-body-file");
-		cmd.add(filename);
-
-		cmd.add("--tx-in-count");
-		long inCount = transactionInputs.stream().map(txin -> txin.getTxhash() + txin.getTxix()).distinct().count();
-		cmd.add("" + inCount);
-
-		cmd.add("--tx-out-count");
-		long outCount = transactionOutputs.getOutputs().size();
-		cmd.add("" + outCount);
-
-		cmd.add("--witness-count");
-		cmd.add("" + (policy != null ? 2 : 1));
-
-		cmd.addAll(List.of(networkMagicArgs));
-
-		cmd.add("--protocol-params-file");
-		cmd.add(prefixFilename(PROTOCOL_JSON_FILENAME));
-
-		String feeString = ProcessUtil.runCommand(cmd.toArray(new String[0]));
-		long fee = Long.valueOf(feeString.split(" ")[0]);
-
-		return fee;
-	}
-
-	public String mint(List<TransactionInputs> transactionInputs, TransactionOutputs transactionOutputs, JSONObject metaData, Address paymentAddress, Policy policy, long fees) throws Exception {
+	public String mint(List<TransactionInputs> transactionInputs, TransactionOutputs transactionOutputs, JSONObject metaData, Address paymentAddress, Policy policy, String changeAddress) throws Exception {
 		try {
 
-			buildTransaction(transactionInputs, transactionOutputs, metaData, policy, fees);
+			buildTransaction(transactionInputs, transactionOutputs, metaData, policy, changeAddress);
 			signTransaction(paymentAddress, policy != null);
 			String txId = getTransactionId();
 			submitTransaction();
@@ -307,17 +290,20 @@ public class CardanoCli {
 		return txId;
 	}
 
-	private void buildTransaction(List<TransactionInputs> transactionInputs, TransactionOutputs transactionOutputs, JSONObject metaData, Policy policy, long fees) throws Exception {
+	private void buildTransaction(List<TransactionInputs> transactionInputs, TransactionOutputs transactionOutputs, JSONObject metaData, Policy policy, String changeAddress) throws Exception {
 		{
 
 			ArrayList<String> cmd = new ArrayList<String>();
 			cmd.addAll(List.of(cardanoCliCmd));
 
 			cmd.add("transaction");
-			cmd.add("build-raw");
+			cmd.add("build");
 
-			cmd.add("--fee");
-			cmd.add("" + fees);
+			cmd.add("--change-address");
+			cmd.add(changeAddress);
+
+			cmd.add("--witness-override");
+			cmd.add("2");
 
 			for (TransactionInputs utxo : transactionInputs) {
 				cmd.add("--tx-in");
@@ -365,6 +351,8 @@ public class CardanoCli {
 				cmd.add("--invalid-hereafter");
 				cmd.add("" + maxSlot);
 			}
+
+			cmd.addAll(List.of(networkMagicArgs));
 
 			ProcessUtil.runCommand(cmd.toArray(new String[0]));
 

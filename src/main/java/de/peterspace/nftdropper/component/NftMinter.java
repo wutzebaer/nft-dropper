@@ -141,7 +141,6 @@ public class NftMinter {
 
 		log.info("Seller Address: {}", sellerAddress);
 		log.info("Token Max Amount: {}", tokenMaxAmount);
-		log.info("Token maxAmountWhitelist: {}", tokenMaxAmount);
 		log.info("Policy Id: {}", policy.getPolicyId());
 		log.info("Token Price: {}", tokenPrice);
 		log.info("Tier Prices: {}", tierPrices);
@@ -182,100 +181,85 @@ public class NftMinter {
 				.filter(of -> !blacklist.contains(of))
 				.collect(Collectors.groupingBy(of -> of.getStakeAddressId(), LinkedHashMap::new, Collectors.toList()));
 
-		final long minFunds = calculateMinFunds(fundAddress);
-		final boolean mintsLeft = calculateMintsLeft(fundAddress);
-
 		for (List<TransactionInputs> transactionInputGroup : transactionInputGroups.values()) {
 			try {
-				final boolean walletMintsLeft = whitelist.isEmpty() || walletRepository.findById(transactionInputGroup.get(0).getStakeAddressId()).map(w -> w.getTokensMinted()).orElse(0) < tokenMaxAmount;
-				if (!mintsLeft && getSantoRiverDiggingToken(offerFundings).isEmpty()
-						|| !walletMintsLeft && getSantoRiverDiggingToken(offerFundings).isEmpty()
-						|| nftSupplier.tokensLeft() == 0
-						|| (!whitelist.isEmpty() && !whitelist.contains(transactionInputGroup.get(0).getStakeAddressId()))) {
-					refund(fundAddress, transactionInputGroup);
-					blacklist.addAll(transactionInputGroup);
-				} else if (hasEnoughFunds(minFunds, transactionInputGroup) || hasEnoughSantoRiverDiggingTokenFunds(transactionInputGroup)) {
-					sell(fundAddress, transactionInputGroup);
-					blacklist.addAll(transactionInputGroup);
+
+				long lockedFunds = calculateLockedAda(transactionInputGroup);
+				Optional<TransactionInputs> santoRiverDiggingToken = getSantoRiverDiggingToken(transactionInputGroup);
+
+				if (santoRiverDiggingToken.isPresent()) {
+					sellsantoRiverDiggingToken(fundAddress, transactionInputGroup, santoRiverDiggingToken, lockedFunds);
 				}
+
+				else if (!StringUtils.isEmpty(fundAddress.getAssetName())) {
+					sellAddressToken(fundAddress, transactionInputGroup, lockedFunds);
+				}
+
+				else {
+					sellGenericToken(fundAddress, transactionInputGroup, lockedFunds);
+				}
+
 			} catch (Exception e) {
-				log.error("Input " + transactionInputGroup.get(0).getSourceAddress() + " failed for " + fundAddress.getAddress() + " failed", e);
+				log.error("TransactionInputs failed to process, blacklisting", e);
+				blacklist.addAll(transactionInputGroup);
 			}
 		}
 
 	}
 
-	private boolean calculateMintsLeft(Address fundAddress) {
-		if (!StringUtils.isEmpty(fundAddress.getAssetName())) {
-			Optional<TokenData> token = nftSupplier.getToken(fundAddress.getAssetName());
-			return token.isPresent();
-		} else {
-			return (tokenMaxAmount - fundAddress.getTokensMinted()) > 0;
-		}
-	}
+	private void sellsantoRiverDiggingToken(Address fundAddress, List<TransactionInputs> transactionInputs, Optional<TransactionInputs> santoRiverDiggingToken, long lockedFunds) throws Exception {
+		Map<String, Integer> traitMap = getTraitMap(santoRiverDiggingToken.get());
+		long price = getCostTraitFromMap(traitMap) * 1_000_000;
 
-	private long calculateMinFunds(Address fundAddress) {
-		if (!StringUtils.isEmpty(fundAddress.getAssetName())) {
-			Optional<TokenData> token = nftSupplier.getToken(fundAddress.getAssetName());
-			if (token.isPresent()) {
-				return token.get().getMetaData().getLong("_price");
-			} else {
-				return 0;
-			}
-		} else if (!tierPrices.isEmpty()) {
-			return tierPrices.get(0).getAmount() * tierPrices.get(0).getPrice() * 1_000_000;
-		} else {
-			return tokenPrice * 1_000_000;
-		}
-	}
-
-	private String formatCurrency(String policyId, String assetName) {
-		if (StringUtils.isBlank(assetName)) {
-			return policyId;
-		} else {
-			return policyId + "." + Hex.encodeHexString(assetName.getBytes(StandardCharsets.UTF_8));
-		}
-	}
-
-	private void sell(Address fundAddress, List<TransactionInputs> transactionInputs) throws DecoderException, Exception, IOException {
-		String buyerAddress = transactionInputs.get(0).getSourceAddress();
-		long funds = transactionInputs.stream().filter(e -> e.getPolicyId().isEmpty()).mapToLong(e -> e.getValue()).sum();
-		Optional<TransactionInputs> santoRiverDiggingToken = getSantoRiverDiggingToken(transactionInputs);
-		Optional<TokenData> addressToken = nftSupplier.getToken(fundAddress.getAssetName());
-		Optional<Wallet> wallet = Optional.empty();
-
-		// determine amount of tokens and price
-		int amount;
-		long selectedPrice;
-		if (addressToken.isPresent()) {
-			amount = 1;
-			selectedPrice = addressToken.get().getMetaData().getLong("_price");
-		}
-		if (santoRiverDiggingToken.isPresent()) {
-			Map<String, Integer> traitMap = getTraitMap(santoRiverDiggingToken.get());
-			selectedPrice = getCostTraitFromMap(traitMap) * 1_000_000;
+		if (nftSupplier.tokensLeft() == 0) {
+			refund(fundAddress, transactionInputs);
+		} else if (hasEnoughFunds(price, transactionInputs, lockedFunds)) {
 			int min = traitMap.get("Lmin").intValue();
 			int max = traitMap.get("Lmax").intValue();
-			amount = min + sr.nextInt((max + 1) - min);
+			int amount = min + sr.nextInt((max + 1) - min);
+			List<TokenData> tokens = nftSupplier.claimTokens(amount);
+			long totalPrice = getCostTraitFromMap(traitMap) * 1_000_000;
+			sell2(fundAddress, transactionInputs, tokens, totalPrice, lockedFunds);
+		}
+	}
+
+	private void sellAddressToken(Address fundAddress, List<TransactionInputs> transactionInputs, long lockedFunds) throws Exception {
+		Optional<TokenData> addressToken = nftSupplier.getToken(fundAddress.getAssetName());
+
+		if (addressToken.isEmpty()) {
+			refund(fundAddress, transactionInputs);
 		} else {
-			selectedPrice = findTierPrice(funds / 1_000_000) * 1_000_000;
-			amount = (int) NumberUtils.min(
+			long price = addressToken.get().getMetaData().getLong("_price");
+			if (hasEnoughFunds(price, transactionInputs, lockedFunds)) {
+				nftSupplier.removeTokenFromSale(List.of(addressToken.get()));
+				long totalPrice = addressToken.get().getMetaData().getLong("_price");
+				sell2(fundAddress, transactionInputs, List.of(addressToken.get()), totalPrice, lockedFunds);
+			}
+		}
+	}
+
+	private void sellGenericToken(Address fundAddress, List<TransactionInputs> transactionInputs, long lockedFunds) throws Exception {
+		long minPrice = tierPrices.isEmpty() ? tokenPrice * 1_000_000 : tierPrices.get(0).getAmount() * tierPrices.get(0).getPrice() * 1_000_000;
+
+		if (nftSupplier.tokensLeft() == 0) {
+			refund(fundAddress, transactionInputs);
+		} else if (hasEnoughFunds(minPrice, transactionInputs, lockedFunds)) {
+			long funds = calculateAvailableFunds(transactionInputs) - lockedFunds;
+			long selectedPrice = findTierPrice(funds / 1_000_000) * 1_000_000;
+			int amount = (int) NumberUtils.min(
 					funds / selectedPrice,
 					tokenMaxAmount - (useCaptcha ? fundAddress.getTokensMinted() : 0));
+			List<TokenData> tokens = nftSupplier.claimTokens(amount);
+			long totalPrice = tokens.size() * selectedPrice;
+			sell2(fundAddress, transactionInputs, tokens, totalPrice, lockedFunds);
 		}
-		if (!whitelist.isEmpty()) {
-			wallet = walletRepository.findById(transactionInputs.get(0).getStakeAddressId());
-			if (wallet.isEmpty()) {
-				wallet = Optional.of(new Wallet(transactionInputs.get(0).getStakeAddressId(), 0));
-			}
-			int walletMintsLeft = tokenMaxAmount - wallet.get().getTokensMinted();
-			amount = Math.min(amount, walletMintsLeft);
-		}
-		amount = Math.min(amount, nftSupplier.tokensLeft());
+	}
 
-		// select tokens
-		List<TokenData> tokens = addressToken.isPresent() ? List.of(addressToken.get()) : nftSupplier.getTokens(amount);
-		log.info("selling {} tokens to {} : {}", amount, buyerAddress, tokens);
+	private void sell2(Address fundAddress, List<TransactionInputs> transactionInputs, List<TokenData> tokens, long totalPrice, long lockedFunds) throws Exception {
+		String buyerAddress = transactionInputs.get(0).getSourceAddress();
+		Optional<Wallet> wallet = Optional.empty();
+
+		log.info("selling {} tokens to {} : {}", tokens.size(), buyerAddress, tokens);
 
 		TransactionOutputs transactionOutputs = new TransactionOutputs();
 
@@ -283,44 +267,23 @@ public class NftMinter {
 		for (TokenData token : tokens) {
 			transactionOutputs.add(buyerAddress, formatCurrency(policy.getPolicyId(), token.assetName()), 1);
 		}
-		if (santoRiverDiggingToken.isPresent()) {
-			transactionOutputs.add(buyerAddress, formatCurrency(santoRiverDiggingToken.get().getPolicyId(), santoRiverDiggingToken.get().getAssetName()), 1);
+
+		// return input tokens to seller
+		if (transactionInputs.stream().filter(e -> !e.getPolicyId().isEmpty()).map(f -> f.getPolicyId()).distinct().count() > 0) {
+			transactionInputs.stream().filter(e -> !e.getPolicyId().isEmpty()).forEach(i -> {
+				transactionOutputs.add(buyerAddress, formatCurrency(i.getPolicyId(), i.getAssetName()), i.getValue());
+			});
 		}
 
 		// min output for tokens
-		long minOutput = 0;
-		if (amount > 0 || santoRiverDiggingToken.isPresent()) {
-			long policyCount = transactionOutputs.getOutputs().get(buyerAddress).keySet().stream().map(s -> s.split("\\.")[0]).distinct().count();
-			Set<String> assetNames = transactionOutputs.getOutputs().get(buyerAddress).keySet().stream().map(s -> s.split("\\.")).filter(a -> a.length > 1).map(a -> a[1]).collect(Collectors.toSet());
-			minOutput = MinOutputCalculator.calculate(assetNames, policyCount);
-			transactionOutputs.add(buyerAddress, "", minOutput);
-		}
+		transactionOutputs.add(buyerAddress, "", cardanoCli.calculateMinUtxo(transactionOutputs.toCliFormat(buyerAddress)));
 
-		// if user paid more than needed
-		long change;
-		if (santoRiverDiggingToken.isPresent()) {
-			Map<String, Integer> traitMap = getTraitMap(santoRiverDiggingToken.get());
-			change = funds - (getCostTraitFromMap(traitMap) * 1_000_000);
-		} else {
-			change = funds - amount * (selectedPrice);
-		}
-		if (change > 0) {
-			transactionOutputs.add(buyerAddress, "", change);
-		}
+		// return change to buyer
+		long change = calculateAvailableFunds(transactionInputs) - lockedFunds - totalPrice;
+		transactionOutputs.add(buyerAddress, "", change);
 
 		if (donate) {
 			transactionOutputs.add(cardanoNode.getDonationAddress(), "", 1_000_000);
-		}
-
-		// send input tokens to seller
-		if (transactionInputs.stream().filter(e -> !e.getPolicyId().isEmpty()).map(f -> f.getPolicyId()).distinct().count() > 0) {
-			transactionInputs.stream().filter(e -> !e.getPolicyId().isEmpty()).forEach(i -> {
-				transactionOutputs.add(sellerAddress, formatCurrency(i.getPolicyId(), i.getAssetName()), i.getValue());
-			});
-		}
-		// remove token from seller, be cause it is added to sender
-		if (santoRiverDiggingToken.isPresent()) {
-			transactionOutputs.add(sellerAddress, formatCurrency(santoRiverDiggingToken.get().getPolicyId(), santoRiverDiggingToken.get().getAssetName()), -1);
 		}
 
 		// build metadata
@@ -342,43 +305,34 @@ public class NftMinter {
 		}
 		JSONObject metaData = new JSONObject().put("721", new JSONObject().put(policy.getPolicyId(), policyMetadata).put("version", "1.0"));
 
-		transactionOutputs.add(sellerAddress, "", 1_000_000);
+		// submit transaction
+		String txId = cardanoCli.mint(transactionInputs, transactionOutputs, metaData, fundAddress, policy, sellerAddress);
+		log.info("Successfully sold {} for {}, txid: {}", tokens.size(), totalPrice, txId);
 
-		try {
-			long fees = cardanoCli.calculateFee(transactionInputs, transactionOutputs, metaData, fundAddress, policy);
-			transactionOutputs.add(sellerAddress, "", -1_000_000);
-			transactionOutputs.add(sellerAddress, "", funds - change - fees - minOutput - (donate ? 1_000_000 : 0));
-
-			String txId = cardanoCli.mint(transactionInputs, transactionOutputs, metaData, fundAddress, policy, fees);
-			log.info("Successfully sold {} for {}, txid: {}", amount, selectedPrice, txId);
-			nftSupplier.markTokenSold(tokens);
-
-			if (fundAddress != paymentAddress) {
-				fundAddress.setTokensMinted(fundAddress.getTokensMinted() + amount);
-				addressRepository.save(fundAddress);
-				log.info("{} has {} tokens left", fundAddress.getAddress(), tokenMaxAmount - fundAddress.getTokensMinted());
-			}
-
-			if (wallet.isPresent()) {
-				wallet.get().setTokensMinted(wallet.get().getTokensMinted() + amount);
-				walletRepository.save(wallet.get());
-			}
-
-		} catch (UnexpectedTokensException e) {
-			log.error("User {} sent tokens, blacklisting: {}", buyerAddress, e.getMessage());
-		} catch (UnprocessedTransactionsException e) {
-			log.error("User {} has unprocessed transactions", buyerAddress, e.getMessage());
-		} catch (OutputTooSmallUTxOException e) {
-			log.error("User {} has send tokens with to few ada", buyerAddress, e.getMessage());
-			blacklist.addAll(transactionInputs);
+		// count per address
+		if (fundAddress != paymentAddress) {
+			fundAddress.setTokensMinted(fundAddress.getTokensMinted() + tokens.size());
+			addressRepository.save(fundAddress);
+			log.info("{} has {} tokens left", fundAddress.getAddress(), tokenMaxAmount - fundAddress.getTokensMinted());
 		}
+
+		// count per wallet
+		if (wallet.isPresent()) {
+			wallet.get().setTokensMinted(wallet.get().getTokensMinted() + tokens.size());
+			walletRepository.save(wallet.get());
+		}
+
+		blacklist.addAll(transactionInputs);
+
+	}
+
+	private long calculateAvailableFunds(List<TransactionInputs> transactionInputs) {
+		return transactionInputs.stream().filter(e -> e.getPolicyId().isEmpty()).mapToLong(e -> e.getValue()).sum();
 	}
 
 	private void refund(Address fundAddress, List<TransactionInputs> transactionInputs) throws Exception {
 		// determine amount of tokens
 		String buyerAddress = transactionInputs.get(0).getSourceAddress();
-
-		long funds = transactionInputs.stream().filter(e -> e.getPolicyId().isEmpty()).mapToLong(e -> e.getValue()).sum();
 
 		TransactionOutputs transactionOutputs = new TransactionOutputs();
 
@@ -388,35 +342,29 @@ public class NftMinter {
 			});
 		}
 
-		transactionOutputs.add(buyerAddress, "", 1_000_000);
+		String txId = cardanoCli.mint(transactionInputs, transactionOutputs, null, fundAddress, policy, buyerAddress);
+		log.info("Successfully refunded, txid: {}", txId);
 
-		try {
-			long fees = cardanoCli.calculateFee(transactionInputs, transactionOutputs, null, fundAddress, policy);
-			transactionOutputs.getOutputs().get(buyerAddress).put("", funds - fees);
-			String txId = cardanoCli.mint(transactionInputs, transactionOutputs, null, fundAddress, policy, fees);
-			log.info("Successfully refunded, txid: {}", txId);
-		} catch (UnexpectedTokensException e) {
-			log.error("User {} sent tokens, blacklisting: {}", buyerAddress, e.getMessage());
-		} catch (UnprocessedTransactionsException e) {
-			log.error("User {} has unprocessed transactions", buyerAddress, e.getMessage());
-		} catch (OutputTooSmallUTxOException e) {
-			log.error("User {} has send tokens with to few ada", buyerAddress, e.getMessage());
-			blacklist.addAll(transactionInputs);
-		}
+		blacklist.addAll(transactionInputs);
 	}
 
-	private boolean hasEnoughFunds(long minFunds, List<TransactionInputs> g) {
-		return g.stream().filter(e -> e.getPolicyId().isEmpty()).mapToLong(e -> e.getValue()).sum() >= (minFunds);
+	private long calculateLockedAda(List<TransactionInputs> g) throws Exception {
+
+		if (g.stream().filter(s -> !s.getPolicyId().isBlank()).filter(s -> !s.getPolicyId().equals(santoRiverDiggingPolicyId)).findAny().isEmpty()) {
+			return 0;
+		}
+
+		String addressValue = g.get(0).getSourceAddress() + " " + g.stream()
+				.filter(s -> !s.getPolicyId().isBlank())
+				.filter(s -> !s.getPolicyId().equals(santoRiverDiggingPolicyId))
+				.map(s -> (s.getValue() + " " + formatCurrency(s.getPolicyId(), s.getAssetName())).trim())
+				.collect(Collectors.joining("+"));
+
+		return cardanoCli.calculateMinUtxo(addressValue);
 	}
 
-	private boolean hasEnoughSantoRiverDiggingTokenFunds(List<TransactionInputs> g) {
-		Optional<TransactionInputs> stantoRiverDiggingToken = getSantoRiverDiggingToken(g);
-		if (stantoRiverDiggingToken.isPresent()) {
-			Map<String, Integer> traitMap = getTraitMap(stantoRiverDiggingToken.get());
-			return hasEnoughFunds(getCostTraitFromMap(traitMap) * 1_000_000, g);
-		} else {
-			return false;
-		}
+	private boolean hasEnoughFunds(long minFunds, List<TransactionInputs> g, long lockedFunds) throws Exception {
+		return calculateAvailableFunds(g) - lockedFunds >= (minFunds);
 	}
 
 	private Integer getCostTraitFromMap(Map<String, Integer> traitMap) {
@@ -438,6 +386,14 @@ public class NftMinter {
 			traitMap.put(bits[0], Integer.valueOf(bits[1]));
 		}
 		return traitMap;
+	}
+
+	private String formatCurrency(String policyId, String assetName) {
+		if (StringUtils.isBlank(assetName)) {
+			return policyId;
+		} else {
+			return policyId + "." + Hex.encodeHexString(assetName.getBytes(StandardCharsets.UTF_8));
+		}
 	}
 
 }

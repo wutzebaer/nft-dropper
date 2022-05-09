@@ -181,9 +181,7 @@ public class CharlySeller {
 			transactionOutputs.addChange(allUsedInputs, buyerAddress);
 
 			try {
-				long fees = cardanoCli.calculateFee(allUsedInputs, transactionOutputs, null, null, null);
-				transactionOutputs.add(sellerAddress, "", -fees);
-				String txId = cardanoCli.mint(allUsedInputs, transactionOutputs, null, paymentAddress, null, fees);
+				String txId = cardanoCli.mint(allUsedInputs, transactionOutputs, null, paymentAddress, null, sellerAddress);
 				log.info("Successfully sold {} , txid: {}", randomAmount, txId);
 				blacklist.addAll(allUsedInputs);
 			} catch (Exception e) {
