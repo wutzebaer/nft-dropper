@@ -187,7 +187,11 @@ public class NftMinter {
 				long lockedFunds = calculateLockedAda(transactionInputGroup);
 				Optional<TransactionInputs> santoRiverDiggingToken = getSantoRiverDiggingToken(transactionInputGroup);
 
-				if (santoRiverDiggingToken.isPresent()) {
+				if (!whitelist.isEmpty() && !whitelist.contains(transactionInputGroup.get(0).getStakeAddressId())) {
+					refund(fundAddress, transactionInputGroup, lockedFunds);
+				}
+
+				else if (santoRiverDiggingToken.isPresent()) {
 					sellsantoRiverDiggingToken(fundAddress, transactionInputGroup, santoRiverDiggingToken, lockedFunds);
 				}
 
@@ -212,7 +216,7 @@ public class NftMinter {
 		long price = getCostTraitFromMap(traitMap) * 1_000_000;
 
 		if (nftSupplier.tokensLeft() == 0) {
-			refund(fundAddress, transactionInputs);
+			refund(fundAddress, transactionInputs, lockedFunds);
 		} else if (hasEnoughFunds(price, transactionInputs, lockedFunds)) {
 			int min = traitMap.get("Lmin").intValue();
 			int max = traitMap.get("Lmax").intValue();
@@ -227,7 +231,7 @@ public class NftMinter {
 		Optional<TokenData> addressToken = nftSupplier.getToken(fundAddress.getAssetName());
 
 		if (addressToken.isEmpty()) {
-			refund(fundAddress, transactionInputs);
+			refund(fundAddress, transactionInputs, lockedFunds);
 		} else {
 			long price = addressToken.get().getMetaData().getLong("_price");
 			if (hasEnoughFunds(price, transactionInputs, lockedFunds)) {
@@ -241,23 +245,46 @@ public class NftMinter {
 	private void sellGenericToken(Address fundAddress, List<TransactionInputs> transactionInputs, long lockedFunds) throws Exception {
 		long minPrice = tierPrices.isEmpty() ? tokenPrice * 1_000_000 : tierPrices.get(0).getAmount() * tierPrices.get(0).getPrice() * 1_000_000;
 
-		if (nftSupplier.tokensLeft() == 0) {
-			refund(fundAddress, transactionInputs);
+		if (nftSupplier.tokensLeft() == 0
+				|| useCaptcha && fundAddress.getTokensMinted() >= tokenMaxAmount
+				|| !whitelist.isEmpty() && walletRepository.findById(transactionInputs.get(0).getStakeAddressId()).map(w -> w.getTokensMinted()).orElse(0) >= tokenMaxAmount) {
+			refund(fundAddress, transactionInputs, lockedFunds);
 		} else if (hasEnoughFunds(minPrice, transactionInputs, lockedFunds)) {
+			Optional<Wallet> wallet = Optional.empty();
+			if (!whitelist.isEmpty()) {
+				wallet = walletRepository.findById(transactionInputs.get(0).getStakeAddressId());
+				if (wallet.isEmpty()) {
+					wallet = Optional.of(new Wallet(transactionInputs.get(0).getStakeAddressId(), 0));
+				}
+			}
+
 			long funds = calculateAvailableFunds(transactionInputs) - lockedFunds;
 			long selectedPrice = findTierPrice(funds / 1_000_000) * 1_000_000;
 			int amount = (int) NumberUtils.min(
 					funds / selectedPrice,
-					tokenMaxAmount - (useCaptcha ? fundAddress.getTokensMinted() : 0));
+					tokenMaxAmount - (useCaptcha ? fundAddress.getTokensMinted() : 0),
+					tokenMaxAmount - wallet.map(w -> w.getTokensMinted()).orElse(0));
 			List<TokenData> tokens = nftSupplier.claimTokens(amount);
 			long totalPrice = tokens.size() * selectedPrice;
 			sell2(fundAddress, transactionInputs, tokens, totalPrice, lockedFunds);
+
+			// count per address
+			if (fundAddress != paymentAddress) {
+				fundAddress.setTokensMinted(fundAddress.getTokensMinted() + tokens.size());
+				addressRepository.save(fundAddress);
+				log.info("{} has {} tokens left", fundAddress.getAddress(), tokenMaxAmount - fundAddress.getTokensMinted());
+			}
+
+			// count per wallet
+			if (wallet.isPresent()) {
+				wallet.get().setTokensMinted(wallet.get().getTokensMinted() + tokens.size());
+				walletRepository.save(wallet.get());
+			}
 		}
 	}
 
 	private void sell2(Address fundAddress, List<TransactionInputs> transactionInputs, List<TokenData> tokens, long totalPrice, long lockedFunds) throws Exception {
 		String buyerAddress = transactionInputs.get(0).getSourceAddress();
-		Optional<Wallet> wallet = Optional.empty();
 
 		log.info("selling {} tokens to {} : {}", tokens.size(), buyerAddress, tokens);
 
@@ -297,7 +324,7 @@ public class NftMinter {
 				}
 			}
 			if (!metaData.has("image")) {
-				try (InputStream newInputStream = Files.newInputStream(Paths.get(tokenDir, tokenData.getFilename()))) {
+				try (InputStream newInputStream = Files.newInputStream(Paths.get(tokenDir, "sold", tokenData.getFilename()))) {
 					metaData.put("image", "ipfs://" + ipfsClient.addFile(newInputStream));
 				}
 			}
@@ -309,19 +336,6 @@ public class NftMinter {
 		String txId = cardanoCli.mint(transactionInputs, transactionOutputs, metaData, fundAddress, policy, sellerAddress);
 		log.info("Successfully sold {} for {}, txid: {}", tokens.size(), totalPrice, txId);
 
-		// count per address
-		if (fundAddress != paymentAddress) {
-			fundAddress.setTokensMinted(fundAddress.getTokensMinted() + tokens.size());
-			addressRepository.save(fundAddress);
-			log.info("{} has {} tokens left", fundAddress.getAddress(), tokenMaxAmount - fundAddress.getTokensMinted());
-		}
-
-		// count per wallet
-		if (wallet.isPresent()) {
-			wallet.get().setTokensMinted(wallet.get().getTokensMinted() + tokens.size());
-			walletRepository.save(wallet.get());
-		}
-
 		blacklist.addAll(transactionInputs);
 
 	}
@@ -330,7 +344,7 @@ public class NftMinter {
 		return transactionInputs.stream().filter(e -> e.getPolicyId().isEmpty()).mapToLong(e -> e.getValue()).sum();
 	}
 
-	private void refund(Address fundAddress, List<TransactionInputs> transactionInputs) throws Exception {
+	private void refund(Address fundAddress, List<TransactionInputs> transactionInputs, long lockedFunds) throws Exception {
 		// determine amount of tokens
 		String buyerAddress = transactionInputs.get(0).getSourceAddress();
 
@@ -341,6 +355,7 @@ public class NftMinter {
 				transactionOutputs.add(buyerAddress, formatCurrency(i.getPolicyId(), i.getAssetName()), i.getValue());
 			});
 		}
+		transactionOutputs.add(buyerAddress, "", lockedFunds);
 
 		String txId = cardanoCli.mint(transactionInputs, transactionOutputs, null, fundAddress, policy, buyerAddress);
 		log.info("Successfully refunded, txid: {}", txId);
