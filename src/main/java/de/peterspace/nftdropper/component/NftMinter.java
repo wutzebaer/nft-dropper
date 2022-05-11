@@ -40,6 +40,7 @@ import org.springframework.core.task.TaskExecutor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 
 import de.peterspace.nftdropper.cardano.CardanoCli;
@@ -97,7 +98,7 @@ public class NftMinter {
 	private final WalletRepository walletRepository;
 	private final TaskExecutor taskExecutor;
 
-	private final Set<TransactionInputs> blacklist = new HashSet<>();
+	private final Cache<TransactionInputs, Long> blacklist = CacheBuilder.newBuilder().expireAfterWrite(1, TimeUnit.MINUTES).build();
 	private final Set<Long> whitelist = new HashSet<>();
 
 	@Getter
@@ -165,14 +166,6 @@ public class NftMinter {
 		return paymentAddress.getAddress();
 	}
 
-	@Scheduled(cron = "*/60 * * * * *")
-	public void clearBlacklist() throws Exception {
-		if (!blacklist.isEmpty()) {
-			blacklist.clear();
-			log.info("Blacklist cleared");
-		}
-	}
-
 	@Scheduled(cron = "*/1 * * * * *")
 	public void processOffers() throws Exception {
 
@@ -191,7 +184,7 @@ public class NftMinter {
 	private void processAddress(Address fundAddress) {
 		List<TransactionInputs> offerFundings = cardanoDbSyncClient.getOfferFundings(fundAddress.getAddress());
 		Map<Long, List<TransactionInputs>> transactionInputGroups = offerFundings.stream()
-				.filter(of -> !blacklist.contains(of))
+				.filter(of -> blacklist.getIfPresent(of) == null)
 				.collect(Collectors.groupingBy(of -> of.getStakeAddressId(), LinkedHashMap::new, Collectors.toList()));
 
 		for (List<TransactionInputs> transactionInputs : transactionInputGroups.values()) {
@@ -229,7 +222,7 @@ public class NftMinter {
 			} catch (Exception e) {
 				log.error("TransactionInputs failed to process", e);
 			} finally {
-				blacklist.addAll(transactionInputs);
+				transactionInputs.forEach(e -> blacklist.put(e, System.currentTimeMillis()));
 			}
 		}
 
@@ -342,6 +335,11 @@ public class NftMinter {
 				String txId = cardanoCli.mint(transactionInputs, transactionOutputs, metaData, fundAddress, policy, sellerAddress);
 				log.info("Successfully sold {} for {}, txid: {}", tokens.size(), totalPrice, txId);
 			} catch (Exception e) {
+				try {
+					nftSupplier.restituteTokens(tokens);
+				} catch (IOException e1) {
+					log.error("Unable to restitute tokens", e1);
+				}
 				log.error("sell failed", e);
 			}
 		});

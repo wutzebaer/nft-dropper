@@ -74,6 +74,13 @@ public class NftSupplier {
 		return tokenDatas;
 	}
 
+	public void restituteTokens(List<TokenData> tokenDatas) throws IOException {
+		for (TokenData tokenData : tokenDatas) {
+			Files.move(soldFolder.resolve(tokenData.getFilename()), sourceFolder.resolve(tokenData.getFilename()), StandardCopyOption.REPLACE_EXISTING);
+		}
+		availableTokens.addAll(tokenDatas);
+	}
+
 	public Optional<TokenData> getToken(String assetName) {
 		Optional<TokenData> tokenData = availableTokens.stream().filter(t -> t.getFilename().equals(assetName)).findFirst();
 		return tokenData;
@@ -89,5 +96,7 @@ public class NftSupplier {
 	public int tokensLeft() {
 		return availableTokens.size();
 	}
+
+
 
 }
