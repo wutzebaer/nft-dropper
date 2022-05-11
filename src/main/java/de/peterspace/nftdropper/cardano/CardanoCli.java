@@ -132,6 +132,13 @@ public class CardanoCli {
 		return createAddress(skeyFilename, vkeyFilename, addressFilename);
 	}
 
+	public Address createPolicyAddress() throws Exception {
+		String skeyFilename = prefixFilename(POLICY_SKEY_FILENAME);
+		String vkeyFilename = prefixFilename(POLICY_VKEY_FILENAME);
+		String addressFilename = prefixFilename(POLICY_ADDR_FILENAME);
+		return createAddress(skeyFilename, vkeyFilename, addressFilename);
+	}
+
 	public Address createDisposableAddress() throws Exception {
 		String skeyFilename = prefixFilename(UUID.randomUUID().toString() + "." + PAYMENT_SKEY_FILENAME);
 		String vkeyFilename = prefixFilename(UUID.randomUUID().toString() + "." + PAYMENT_VKEY_FILENAME);
@@ -141,13 +148,6 @@ public class CardanoCli {
 		fileUtil.removeFile(vkeyFilename);
 		fileUtil.removeFile(addressFilename);
 		return createAddress;
-	}
-
-	public Address createPolicyAddress() throws Exception {
-		String skeyFilename = prefixFilename(POLICY_SKEY_FILENAME);
-		String vkeyFilename = prefixFilename(POLICY_VKEY_FILENAME);
-		String addressFilename = prefixFilename(POLICY_ADDR_FILENAME);
-		return createAddress(skeyFilename, vkeyFilename, addressFilename);
 	}
 
 	private Address createAddress(String skeyFilename, String vkeyFilename, String addressFilename) throws Exception {
@@ -240,21 +240,24 @@ public class CardanoCli {
 	public String mint(List<TransactionInputs> transactionInputs, TransactionOutputs transactionOutputs, JSONObject metaData, Address paymentAddress, Policy policy, String changeAddress) throws Exception {
 		try {
 
-			buildTransaction(transactionInputs, transactionOutputs, metaData, policy, changeAddress);
-			signTransaction(paymentAddress, policy != null);
-			String txId = getTransactionId();
-			submitTransaction();
+			String txUnsignedFilename = buildTransaction(transactionInputs, transactionOutputs, metaData, policy, changeAddress);
+			String signedTxFilename = signTransaction(txUnsignedFilename, paymentAddress, policy != null);
+			String txId = getTransactionId(signedTxFilename);
+			submitTransaction(signedTxFilename);
+			fileUtil.removeFile(txUnsignedFilename);
+			fileUtil.removeFile(signedTxFilename);
 			return txId;
 
 		} catch (Exception e) {
-			if (e.getMessage().contains("BadInputsUTxO")) {
-				throw new UnprocessedTransactionsException(e.getMessage());
-			} else if (e.getMessage().contains("OutsideValidityIntervalUTxO")) {
-				throw new PolicyExpiredException(e.getMessage());
-			} else if (e.getMessage().contains("Non-Ada assets are unbalanced")) {
-				throw new UnexpectedTokensException(e.getMessage());
-			} else if (e.getMessage().contains("OutputTooSmallUTxO")) {
-				throw new OutputTooSmallUTxOException(e.getMessage());
+			String message = StringUtils.trimToEmpty(e.getMessage());
+			if (message.contains("BadInputsUTxO")) {
+				throw new UnprocessedTransactionsException(message);
+			} else if (message.contains("OutsideValidityIntervalUTxO")) {
+				throw new PolicyExpiredException(message);
+			} else if (message.contains("Non-Ada assets are unbalanced")) {
+				throw new UnexpectedTokensException(message);
+			} else if (message.contains("OutputTooSmallUTxO")) {
+				throw new OutputTooSmallUTxOException(message);
 			} else {
 				throw e;
 			}
@@ -262,35 +265,7 @@ public class CardanoCli {
 
 	}
 
-	private void submitTransaction() throws Exception {
-		ArrayList<String> cmd = new ArrayList<String>();
-		cmd.addAll(List.of(cardanoCliCmd));
-		cmd.add("transaction");
-		cmd.add("submit");
-
-		cmd.add("--tx-file");
-		cmd.add(prefixFilename(TRANSACTION_SIGNED_FILENAME));
-
-		cmd.addAll(List.of(networkMagicArgs));
-
-		ProcessUtil.runCommand(cmd.toArray(new String[0]));
-	}
-
-	private String getTransactionId() throws Exception {
-		String txId;
-		{
-			ArrayList<String> cmd = new ArrayList<String>();
-			cmd.addAll(List.of(cardanoCliCmd));
-			cmd.add("transaction");
-			cmd.add("txid");
-			cmd.add("--tx-file");
-			cmd.add(prefixFilename(TRANSACTION_SIGNED_FILENAME));
-			txId = ProcessUtil.runCommand(cmd.toArray(new String[0]));
-		}
-		return txId;
-	}
-
-	private void buildTransaction(List<TransactionInputs> transactionInputs, TransactionOutputs transactionOutputs, JSONObject metaData, Policy policy, String changeAddress) throws Exception {
+	private String buildTransaction(List<TransactionInputs> transactionInputs, TransactionOutputs transactionOutputs, JSONObject metaData, Policy policy, String changeAddress) throws Exception {
 		{
 
 			ArrayList<String> cmd = new ArrayList<String>();
@@ -336,15 +311,18 @@ public class CardanoCli {
 				cmd.add(prefixFilename(POLICY_SCRIPT_FILENAME));
 			}
 
+			String metadataFilename = prefixFilename(UUID.randomUUID().toString() + "." + TRANSACTION_METADATA_JSON_FILENAME);
+			String txUnsignedFilename = prefixFilename(UUID.randomUUID().toString() + "." + TRANSACTION_UNSIGNED_FILENAME);
+
 			if (metaData != null) {
-				fileUtil.writeFile(prefixFilename(TRANSACTION_METADATA_JSON_FILENAME), metaData.toString(3));
+				fileUtil.writeFile(metadataFilename, metaData.toString(3));
 				cmd.add("--json-metadata-no-schema");
 				cmd.add("--metadata-json-file");
-				cmd.add(prefixFilename(TRANSACTION_METADATA_JSON_FILENAME));
+				cmd.add(metadataFilename);
 			}
 
 			cmd.add("--out-file");
-			cmd.add(prefixFilename(TRANSACTION_UNSIGNED_FILENAME));
+			cmd.add(txUnsignedFilename);
 
 			if (policy != null) {
 				long maxSlot = new JSONObject(policy.getPolicy()).getJSONArray("scripts").getJSONObject(0).getLong("slot");
@@ -356,13 +334,21 @@ public class CardanoCli {
 
 			ProcessUtil.runCommand(cmd.toArray(new String[0]));
 
+			if (metaData != null) {
+				fileUtil.removeFile(metadataFilename);
+			}
+
+			return txUnsignedFilename;
+
 		}
 	}
 
-	private void signTransaction(Address paymentAddress, boolean signWithPolicy) throws Exception {
+	private String signTransaction(String txUnsignedFilename, Address paymentAddress, boolean signWithPolicy) throws Exception {
 		{
 
 			String skeyFilename = prefixFilename(UUID.randomUUID().toString() + "." + PAYMENT_SKEY_FILENAME);
+			String txSignedFilename = prefixFilename(UUID.randomUUID().toString() + "." + TRANSACTION_UNSIGNED_FILENAME);
+
 			fileUtil.writeFile(skeyFilename, paymentAddress.getSkey());
 
 			ArrayList<String> cmd = new ArrayList<String>();
@@ -381,16 +367,42 @@ public class CardanoCli {
 			cmd.addAll(List.of(networkMagicArgs));
 
 			cmd.add("--tx-body-file");
-			cmd.add(prefixFilename(TRANSACTION_UNSIGNED_FILENAME));
+			cmd.add(txUnsignedFilename);
 
 			cmd.add("--out-file");
-			cmd.add(prefixFilename(TRANSACTION_SIGNED_FILENAME));
+			cmd.add(txSignedFilename);
 
 			ProcessUtil.runCommand(cmd.toArray(new String[0]));
 
 			fileUtil.removeFile(skeyFilename);
+			return txSignedFilename;
 
 		}
+	}
+
+	private void submitTransaction(String signedTxFilename) throws Exception {
+		ArrayList<String> cmd = new ArrayList<String>();
+		cmd.addAll(List.of(cardanoCliCmd));
+		cmd.add("transaction");
+		cmd.add("submit");
+
+		cmd.add("--tx-file");
+		cmd.add(signedTxFilename);
+
+		cmd.addAll(List.of(networkMagicArgs));
+
+		ProcessUtil.runCommand(cmd.toArray(new String[0]));
+	}
+
+	private String getTransactionId(String signedTxFilename) throws Exception {
+		ArrayList<String> cmd = new ArrayList<String>();
+		cmd.addAll(List.of(cardanoCliCmd));
+		cmd.add("transaction");
+		cmd.add("txid");
+		cmd.add("--tx-file");
+		cmd.add(signedTxFilename);
+		String txId = ProcessUtil.runCommand(cmd.toArray(new String[0]));
+		return txId;
 	}
 
 	private String formatCurrency(String policyId, String assetName) {
