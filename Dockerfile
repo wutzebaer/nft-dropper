@@ -1,4 +1,4 @@
-FROM adoptopenjdk/openjdk11:x86_64-ubuntu-jre11u-2022-01-20-19-54-beta-nightly
+FROM adoptopenjdk/openjdk11:x86_64-ubuntu-jre-11.0.15_10
 RUN apt-get update && apt-get install -y \
   docker.io \
   && rm -rf /var/lib/apt/lists/*
