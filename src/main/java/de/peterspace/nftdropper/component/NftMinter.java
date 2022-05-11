@@ -190,7 +190,7 @@ public class NftMinter {
 		for (List<TransactionInputs> transactionInputs : transactionInputGroups.values()) {
 			try {
 
-				long lockedFunds = calculateLockedAda(transactionInputs);
+				long lockedFunds = calculateLockedFunds(transactionInputs);
 				Optional<TransactionInputs> santoRiverDiggingToken = getSantoRiverDiggingToken(transactionInputs);
 
 				if (!whitelist.isEmpty() && !whitelist.contains(transactionInputs.get(0).getStakeAddressId())) {
@@ -376,7 +376,7 @@ public class NftMinter {
 		return transactionInputs.stream().filter(e -> e.getPolicyId().isEmpty()).mapToLong(e -> e.getValue()).sum();
 	}
 
-	private long calculateLockedAda(List<TransactionInputs> g) throws Exception {
+	private long calculateLockedFunds(List<TransactionInputs> g) throws Exception {
 
 		if (g.stream().filter(s -> !s.getPolicyId().isBlank()).filter(s -> !s.getPolicyId().equals(santoRiverDiggingPolicyId)).findAny().isEmpty()) {
 			return 0;

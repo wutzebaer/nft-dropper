@@ -63,40 +63,8 @@ public class TransactionOutputs {
 				.findFirst().orElse("");
 	}
 
-	public void substractFees(long fees) throws Exception {
-		while (fees > 0) {
-			Optional<Map<String, Long>> highestOutputOptional = outputs.values()
-					.stream()
-					.filter(m -> m.keySet().equals(Set.of("")))
-					.filter(m -> m.getOrDefault("", 0l) > 1000000)
-					.sorted(Comparator.comparingLong(m -> ((Map<String, Long>) m).getOrDefault("", 0l)).reversed())
-					.findFirst();
-			if (highestOutputOptional.isEmpty()) {
-				throw new Exception("Not enough ada to substract fees: " + outputs);
-			} else {
-				Map<String, Long> highestOutput = highestOutputOptional.get();
-				highestOutput.put("", highestOutputOptional.get().get("") - 1);
-			}
-			fees--;
-		}
-	}
-
 	public String toString() {
 		return new JSONObject(outputs).toString(3);
-	}
-
-	public void addChange(List<TransactionInputs> inputs, String changeAddress) {
-		Map<String, Long> inputTokens = inputs.stream().collect(Collectors.groupingBy(i -> formatCurrency(i.getPolicyId(), i.getAssetName()), Collectors.summingLong(TransactionInputs::getValue)));
-		for (Map<String, Long> output : outputs.values()) {
-			for (Entry<String, Long> outputEntry : output.entrySet()) {
-				inputTokens.put(outputEntry.getKey(), inputTokens.getOrDefault(outputEntry.getKey(), 0l) - outputEntry.getValue());
-			}
-		}
-		for (Entry<String, Long> inputEntry : inputTokens.entrySet()) {
-			if (inputEntry.getValue() > 0) {
-				add(changeAddress, inputEntry.getKey(), inputEntry.getValue());
-			}
-		}
 	}
 
 	private String formatCurrency(String policyId, String assetName) {
