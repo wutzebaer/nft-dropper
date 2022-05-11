@@ -98,7 +98,7 @@ public class NftMinter {
 	private final WalletRepository walletRepository;
 	private final TaskExecutor taskExecutor;
 
-	private final Cache<TransactionInputs, Long> blacklist = CacheBuilder.newBuilder().expireAfterWrite(1, TimeUnit.MINUTES).build();
+	private final Cache<Long, Boolean> blacklist = CacheBuilder.newBuilder().expireAfterWrite(1, TimeUnit.MINUTES).build();
 	private final Set<Long> whitelist = new HashSet<>();
 
 	@Getter
@@ -184,7 +184,7 @@ public class NftMinter {
 	private void processAddress(Address fundAddress) {
 		List<TransactionInputs> offerFundings = cardanoDbSyncClient.getOfferFundings(fundAddress.getAddress());
 		Map<Long, List<TransactionInputs>> transactionInputGroups = offerFundings.stream()
-				.filter(of -> blacklist.getIfPresent(of) == null)
+				.filter(of -> blacklist.getIfPresent(of.getStakeAddressId()) == null)
 				.collect(Collectors.groupingBy(of -> of.getStakeAddressId(), LinkedHashMap::new, Collectors.toList()));
 
 		for (List<TransactionInputs> transactionInputs : transactionInputGroups.values()) {
@@ -222,7 +222,7 @@ public class NftMinter {
 			} catch (Exception e) {
 				log.error("TransactionInputs failed to process", e);
 			} finally {
-				transactionInputs.forEach(e -> blacklist.put(e, System.currentTimeMillis()));
+				blacklist.put(transactionInputs.get(0).getStakeAddressId(), true);
 			}
 		}
 

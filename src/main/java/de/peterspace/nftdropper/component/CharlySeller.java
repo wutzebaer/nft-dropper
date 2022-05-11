@@ -73,7 +73,7 @@ public class CharlySeller {
 	@Getter
 	private Address paymentAddress;
 
-	private final Cache<TransactionInputs, Long> blacklist = CacheBuilder.newBuilder().expireAfterWrite(1, TimeUnit.MINUTES).build();
+	private final Cache<Long, Boolean> blacklist = CacheBuilder.newBuilder().expireAfterWrite(1, TimeUnit.MINUTES).build();
 
 	@lombok.Value
 	public static class CharlyTier {
@@ -177,6 +177,10 @@ public class CharlySeller {
 				// min output for tokens
 				transactionOutputs.add(buyerAddress, "", cardanoCli.calculateMinUtxo(transactionOutputs.toCliFormat(buyerAddress)));
 
+				// return change to buyer
+				long change = useableFunds - minFunds;
+				transactionOutputs.add(buyerAddress, "", change);
+
 				// charly bowl
 				long charlyLeft = gatheredCharlies - randomAmount;
 				long usedCharlyInputCount = countCharlyInputs(reservedUtxosWithCharlyTokens);
@@ -198,7 +202,7 @@ public class CharlySeller {
 			} catch (Exception e) {
 				log.error("TransactionInputs failed to process", e);
 			} finally {
-				utxosWithoutCharlyTokens.forEach(e -> blacklist.put(e, System.currentTimeMillis()));
+				blacklist.put(utxosWithoutCharlyTokens.get(0).getStakeAddressId(), true);
 			}
 
 		}
@@ -250,7 +254,7 @@ public class CharlySeller {
 	private List<TransactionInputs> getCharlyInputs(List<TransactionInputs> offerFundings) {
 		return offerFundings
 				.stream()
-				.filter(of -> blacklist.getIfPresent(of) == null)
+				.filter(of -> blacklist.getIfPresent(of.getStakeAddressId()) == null)
 				// wir wollten nicht nur die charlies sondern auch die zugehörigen adas finden
 				.filter(of -> offerFundings.stream().anyMatch(
 						check -> (check.getPolicyId() + "." + check.getAssetName()).equals(charlyToken)
@@ -262,7 +266,7 @@ public class CharlySeller {
 	private Map<Long, List<TransactionInputs>> getNonCharlyInputsGroupedByStakingAddress(List<TransactionInputs> offerFundings) {
 		return offerFundings
 				.stream()
-				.filter(of -> blacklist.getIfPresent(of) == null)
+				.filter(of -> blacklist.getIfPresent(of.getStakeAddressId()) == null)
 				.filter(of -> !offerFundings.stream().anyMatch(
 						check -> (check.getPolicyId() + "." + check.getAssetName()).equals(charlyToken)
 								&& check.getTxhash().equals(of.getTxhash())
