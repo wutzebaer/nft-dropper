@@ -74,6 +74,7 @@ public class CharlySeller {
 	private Address paymentAddress;
 
 	private final Cache<Long, Boolean> blacklist = CacheBuilder.newBuilder().expireAfterWrite(1, TimeUnit.MINUTES).build();
+	private final Cache<String, Boolean> blacklistCharly = CacheBuilder.newBuilder().expireAfterWrite(60, TimeUnit.MINUTES).build();
 
 	@lombok.Value
 	public static class CharlyTier {
@@ -197,6 +198,11 @@ public class CharlySeller {
 
 				List allUsedInputs = ListUtils.union(utxosWithoutCharlyTokens, reservedUtxosWithCharlyTokens);
 				String txId = cardanoCli.mint(allUsedInputs, transactionOutputs, null, paymentAddress, null, sellerAddress);
+
+				for (TransactionInputs charlyInput : reservedUtxosWithCharlyTokens) {
+					blacklistCharly.put(charlyInput.getTxhash() + "#" + charlyInput.getTxix(), true);
+				}
+
 				log.info("Successfully sold {} , txid: {}", randomAmount, txId);
 
 			} catch (Exception e) {
@@ -254,7 +260,7 @@ public class CharlySeller {
 	private List<TransactionInputs> getCharlyInputs(List<TransactionInputs> offerFundings) {
 		return offerFundings
 				.stream()
-				.filter(of -> blacklist.getIfPresent(of.getStakeAddressId()) == null)
+				.filter(of -> blacklistCharly.getIfPresent(of.getTxhash() + "#" + of.getTxix()) == null)
 				// wir wollten nicht nur die charlies sondern auch die zugehörigen adas finden
 				.filter(of -> offerFundings.stream().anyMatch(
 						check -> (check.getPolicyId() + "." + check.getAssetName()).equals(charlyToken)
