@@ -26,6 +26,7 @@ import de.peterspace.nftdropper.model.Address;
 import de.peterspace.nftdropper.model.Policy;
 import de.peterspace.nftdropper.model.TransactionInputs;
 import de.peterspace.nftdropper.model.TransactionOutputs;
+import de.peterspace.nftdropper.util.CardanoUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -93,17 +94,6 @@ public class CardanoCli {
 		cmd.addAll(List.of(networkMagicArgs));
 		ProcessUtil.runCommand(cmd.toArray(new String[0]));
 
-	}
-
-	public long queryTip() throws Exception {
-		ArrayList<String> cmd = new ArrayList<String>();
-		cmd.addAll(List.of(cardanoCliCmd));
-		cmd.add("query");
-		cmd.add("tip");
-		cmd.addAll(List.of(networkMagicArgs));
-		String jsonString = ProcessUtil.runCommand(cmd.toArray(new String[0]));
-		JSONObject jsonObject = new JSONObject(jsonString);
-		return jsonObject.getLong("slot");
 	}
 
 	public long calculateMinUtxo(String addressValue) throws Exception {
@@ -193,7 +183,7 @@ public class CardanoCli {
 		if (!fileUtil.exists(policyFilename)) {
 
 			long secondsToLive = 60 * 60 * 24 * days;
-			long dueSlot = queryTip() + secondsToLive;
+			long dueSlot = CardanoUtil.currentSlot() + secondsToLive;
 
 			String vkeyFilename = prefixFilename(POLICY_VKEY_FILENAME);
 
@@ -266,118 +256,113 @@ public class CardanoCli {
 	}
 
 	private String buildTransaction(List<TransactionInputs> transactionInputs, TransactionOutputs transactionOutputs, JSONObject metaData, Policy policy, String changeAddress) throws Exception {
-		{
 
-			ArrayList<String> cmd = new ArrayList<String>();
-			cmd.addAll(List.of(cardanoCliCmd));
+		ArrayList<String> cmd = new ArrayList<String>();
+		cmd.addAll(List.of(cardanoCliCmd));
 
-			cmd.add("transaction");
-			cmd.add("build");
+		cmd.add("transaction");
+		cmd.add("build");
 
-			cmd.add("--change-address");
-			cmd.add(changeAddress);
+		cmd.add("--change-address");
+		cmd.add(changeAddress);
 
-			cmd.add("--witness-override");
-			cmd.add("2");
+		cmd.add("--witness-override");
+		cmd.add("2");
 
-			for (TransactionInputs utxo : transactionInputs) {
-				cmd.add("--tx-in");
-				cmd.add(utxo.getTxhash() + "#" + utxo.getTxix());
-			}
-
-			for (String a : transactionOutputs.toCliFormat()) {
-				cmd.add("--tx-out");
-				cmd.add(a);
-			}
-
-			Set<String> outputAssets = transactionOutputs.getOutputs().values()
-					.stream()
-					.flatMap(a -> a.keySet().stream())
-					.filter(e -> !StringUtils.isBlank(e))
-					.collect(Collectors.toSet());
-			List<String> mints = new ArrayList<String>();
-			for (String assetEntry : outputAssets) {
-				long inputAmount = transactionInputs.stream().filter(i -> Objects.equals(formatCurrency(i.getPolicyId(), i.getAssetName()), assetEntry)).mapToLong(i -> i.getValue()).sum();
-				long outputAmount = transactionOutputs.getOutputs().values().stream().flatMap(a -> a.entrySet().stream()).filter(e -> Objects.equals(e.getKey(), assetEntry)).mapToLong(e -> e.getValue()).sum();
-				long needed = outputAmount - inputAmount;
-				if (needed > 0) {
-					mints.add(String.format("%d %s", needed, assetEntry));
-				}
-			}
-			if (mints.size() > 0) {
-				cmd.add("--mint");
-				cmd.add(StringUtils.join(mints, "+"));
-				cmd.add("--minting-script-file");
-				cmd.add(prefixFilename(POLICY_SCRIPT_FILENAME));
-			}
-
-			String metadataFilename = prefixFilename(UUID.randomUUID().toString() + "." + TRANSACTION_METADATA_JSON_FILENAME);
-			String txUnsignedFilename = prefixFilename(UUID.randomUUID().toString() + "." + TRANSACTION_UNSIGNED_FILENAME);
-
-			if (metaData != null) {
-				fileUtil.writeFile(metadataFilename, metaData.toString(3));
-				cmd.add("--json-metadata-no-schema");
-				cmd.add("--metadata-json-file");
-				cmd.add(metadataFilename);
-			}
-
-			cmd.add("--out-file");
-			cmd.add(txUnsignedFilename);
-
-			if (policy != null) {
-				long maxSlot = new JSONObject(policy.getPolicy()).getJSONArray("scripts").getJSONObject(0).getLong("slot");
-				cmd.add("--invalid-hereafter");
-				cmd.add("" + maxSlot);
-			}
-
-			cmd.addAll(List.of(networkMagicArgs));
-
-			ProcessUtil.runCommand(cmd.toArray(new String[0]));
-
-			if (metaData != null) {
-				fileUtil.removeFile(metadataFilename);
-			}
-
-			return txUnsignedFilename;
-
+		for (TransactionInputs utxo : transactionInputs) {
+			cmd.add("--tx-in");
+			cmd.add(utxo.getTxhash() + "#" + utxo.getTxix());
 		}
+
+		for (String a : transactionOutputs.toCliFormat()) {
+			cmd.add("--tx-out");
+			cmd.add(a);
+		}
+
+		Set<String> outputAssets = transactionOutputs.getOutputs().values()
+				.stream()
+				.flatMap(a -> a.keySet().stream())
+				.filter(e -> !StringUtils.isBlank(e))
+				.collect(Collectors.toSet());
+		List<String> mints = new ArrayList<String>();
+		for (String assetEntry : outputAssets) {
+			long inputAmount = transactionInputs.stream().filter(i -> Objects.equals(formatCurrency(i.getPolicyId(), i.getAssetName()), assetEntry)).mapToLong(i -> i.getValue()).sum();
+			long outputAmount = transactionOutputs.getOutputs().values().stream().flatMap(a -> a.entrySet().stream()).filter(e -> Objects.equals(e.getKey(), assetEntry)).mapToLong(e -> e.getValue()).sum();
+			long needed = outputAmount - inputAmount;
+			if (needed > 0) {
+				mints.add(String.format("%d %s", needed, assetEntry));
+			}
+		}
+		if (mints.size() > 0) {
+			cmd.add("--mint");
+			cmd.add(StringUtils.join(mints, "+"));
+			cmd.add("--minting-script-file");
+			cmd.add(prefixFilename(POLICY_SCRIPT_FILENAME));
+		}
+
+		String metadataFilename = prefixFilename(UUID.randomUUID().toString() + "." + TRANSACTION_METADATA_JSON_FILENAME);
+		String txUnsignedFilename = prefixFilename(UUID.randomUUID().toString() + "." + TRANSACTION_UNSIGNED_FILENAME);
+
+		if (metaData != null) {
+			fileUtil.writeFile(metadataFilename, metaData.toString(3));
+			cmd.add("--json-metadata-no-schema");
+			cmd.add("--metadata-json-file");
+			cmd.add(metadataFilename);
+		}
+
+		cmd.add("--out-file");
+		cmd.add(txUnsignedFilename);
+
+		if (policy != null) {
+			long maxSlot = new JSONObject(policy.getPolicy()).getJSONArray("scripts").getJSONObject(0).getLong("slot");
+			cmd.add("--invalid-hereafter");
+			cmd.add("" + maxSlot);
+		}
+
+		cmd.addAll(List.of(networkMagicArgs));
+
+		ProcessUtil.runCommand(cmd.toArray(new String[0]));
+
+		if (metaData != null) {
+			fileUtil.removeFile(metadataFilename);
+		}
+
+		return txUnsignedFilename;
 	}
 
 	private String signTransaction(String txUnsignedFilename, Address paymentAddress, boolean signWithPolicy) throws Exception {
-		{
 
-			String skeyFilename = prefixFilename(UUID.randomUUID().toString() + "." + PAYMENT_SKEY_FILENAME);
-			String txSignedFilename = prefixFilename(UUID.randomUUID().toString() + "." + TRANSACTION_UNSIGNED_FILENAME);
+		String skeyFilename = prefixFilename(UUID.randomUUID().toString() + "." + PAYMENT_SKEY_FILENAME);
+		String txSignedFilename = prefixFilename(UUID.randomUUID().toString() + "." + TRANSACTION_UNSIGNED_FILENAME);
 
-			fileUtil.writeFile(skeyFilename, paymentAddress.getSkey());
+		fileUtil.writeFile(skeyFilename, paymentAddress.getSkey());
 
-			ArrayList<String> cmd = new ArrayList<String>();
-			cmd.addAll(List.of(cardanoCliCmd));
-			cmd.add("transaction");
-			cmd.add("sign");
+		ArrayList<String> cmd = new ArrayList<String>();
+		cmd.addAll(List.of(cardanoCliCmd));
+		cmd.add("transaction");
+		cmd.add("sign");
 
+		cmd.add("--signing-key-file");
+		cmd.add(skeyFilename);
+
+		if (signWithPolicy) {
 			cmd.add("--signing-key-file");
-			cmd.add(skeyFilename);
-
-			if (signWithPolicy) {
-				cmd.add("--signing-key-file");
-				cmd.add(prefixFilename(POLICY_SKEY_FILENAME));
-			}
-
-			cmd.addAll(List.of(networkMagicArgs));
-
-			cmd.add("--tx-body-file");
-			cmd.add(txUnsignedFilename);
-
-			cmd.add("--out-file");
-			cmd.add(txSignedFilename);
-
-			ProcessUtil.runCommand(cmd.toArray(new String[0]));
-
-			fileUtil.removeFile(skeyFilename);
-			return txSignedFilename;
-
+			cmd.add(prefixFilename(POLICY_SKEY_FILENAME));
 		}
+
+		cmd.addAll(List.of(networkMagicArgs));
+
+		cmd.add("--tx-body-file");
+		cmd.add(txUnsignedFilename);
+
+		cmd.add("--out-file");
+		cmd.add(txSignedFilename);
+
+		ProcessUtil.runCommand(cmd.toArray(new String[0]));
+
+		fileUtil.removeFile(skeyFilename);
+		return txSignedFilename;
+
 	}
 
 	private void submitTransaction(String signedTxFilename) throws Exception {
