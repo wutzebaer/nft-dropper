@@ -80,7 +80,7 @@ public class CardanoCli {
                 "-e", "CARDANO_NODE_SOCKET_PATH=/ipc/node.socket",
                 "-v", ipcVolumeName + ":/ipc",
                 "-v", workingDirExternal + ":/work",
-                "inputoutput/cardano-node:1.34.1"
+                "inputoutput/cardano-node:1.35.1"
         };
         // @formatter:on
 		this.networkMagicArgs = cardanoNode.getNetworkMagicArgs();
@@ -262,6 +262,10 @@ public class CardanoCli {
 
 		cmd.add("transaction");
 		cmd.add("build");
+
+			if ("Babbage".equals(cardanoNode.getEra())) {
+				cmd.add("--babbage-era");
+			}
 
 		cmd.add("--change-address");
 		cmd.add(changeAddress);
