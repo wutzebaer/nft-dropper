@@ -85,7 +85,7 @@ h1 {
 }
 
 a:hover img {
-	filter: drop-shadow(0px 0px 30px rgba(255,215,0, 1.0));
+	filter: drop-shadow(0px 0px 30px rgba(255, 215, 0, 1.0));
 }
 
 #button-line .main-button .comming-soon {
@@ -188,4 +188,77 @@ a:hover img {
 .qr-code {
 	max-width: 100%;
 	width: 200px;
+}
+
+/* hunter */
+#hunter-logo-line {
+	text-align: center;
+}
+
+#hunter-logo-line img {
+	max-width: 95vw;
+}
+
+.hunter-field-boundary {
+	padding: 0 50px;
+	width: 100%;
+	margin-bottom: 50px;
+}
+
+.hunter-field {
+	text-align: center;
+	position: relative;
+	transition: height 2s;
+}
+
+.hunter-lane-header {
+	display: flex;
+	flex-direction: row;
+	justify-content: space-between;
+	font-weight: 700;
+	font-size: 24px;
+}
+
+.hunter-lane {
+	position: absolute;
+	height: 100px;
+	width: 100%;
+	background: url("/images/lane.png");
+	background-size: 100% 100%;
+	left: 0;
+	padding: inherit;
+	background-origin: content-box;
+	transition: top 2s;
+}
+
+.hunter-lane .hunter {
+	position: absolute;
+	transform: translate(-50%, 0);
+	height: 100%;
+	font-weight: 700;
+	font-size: 14px;
+	transition: left 2s;
+	 text-shadow: 1px 1px 2px #333;
+}
+
+.hunter-lane .hunter img {
+	height: 100%;
+}
+
+.hunter-lane .hunter .top {
+	position: absolute;
+	transform: translate(-50%, 0);
+	top: 0;
+	left: 50%;
+	max-width: 100%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.hunter-lane .hunter .bottom {
+	position: absolute;
+	transform: translate(-50%, 0);
+	bottom: 0;
+	left: 50%;
 }

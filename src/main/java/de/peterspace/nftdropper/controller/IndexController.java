@@ -62,6 +62,12 @@ public class IndexController {
 		return "bowl";
 	}
 
+	@GetMapping("/hunter")
+	public String hunter(Model model) {
+		addAttributes(model);
+		return "hunter";
+	}
+
 	private void addAttributes(Model model) {
 		if (StringUtils.isBlank(charlyToken)) {
 			model.addAttribute("totalTokens", nftSupplier.getTotalTokens());

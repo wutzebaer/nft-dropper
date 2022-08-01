@@ -35,3 +35,4 @@ build/
 work
 application.properties
 nft-source
+*.db

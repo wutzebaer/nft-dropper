@@ -7,6 +7,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -20,6 +21,8 @@ import org.springframework.stereotype.Component;
 
 import com.zaxxer.hikari.HikariDataSource;
 
+import de.peterspace.nftdropper.model.HunterSnapshot;
+import de.peterspace.nftdropper.model.HunterSnapshotRow;
 import de.peterspace.nftdropper.model.TransactionInputs;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +31,29 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @RequiredArgsConstructor
 public class CardanoDbSyncClient {
+
+	private static final String hunterSnapshotQuery = "with owners as (\r\n"
+			+ "	select \r\n"
+			+ "	coalesce(uv.stake_address_id::varchar, uv.address) \"group\",\r\n"
+			+ "	min(uv.address) address, \r\n"
+			+ "	min(uv.stake_address_id) stake_address_id, \r\n"
+			+ "	sum(mto_charly.quantity) quantity\r\n"
+			+ "	from utxo_view uv \r\n"
+			+ "	join tx_out to_charly on to_charly.tx_id=uv.tx_id and to_charly.\"index\"=uv.\"index\"\r\n"
+			+ "	join ma_tx_out mto_charly on mto_charly.tx_out_id=to_charly.id join multi_asset ma_charly on ma_charly.id=mto_charly.ident\r\n"
+			+ "	where \r\n"
+			+ "	ma_charly.\"policy\"= decode('89267e9a35153a419e1b8ffa23e511ac39ea4e3b00452e9d500f2982', 'hex')\r\n"
+			+ "	group by \"group\"\r\n"
+			+ "	order by quantity desc\r\n"
+			+ ")\r\n"
+			+ "select owners.\"group\", min(encode(owners.address::bytea, 'escape')) address, min(encode(ma_handle.name::bytea, 'escape')) handle, min(owners.quantity) quantity\r\n"
+			+ "from owners\r\n"
+			+ "left join utxo_view uv_handle on uv_handle.stake_address_id=owners.stake_address_id\r\n"
+			+ "left join tx_out to_handle on to_handle.tx_id=uv_handle.tx_id and to_handle.\"index\"=uv_handle.\"index\"\r\n"
+			+ "left join ma_tx_out mto_handle on mto_handle.tx_out_id=to_handle.id \r\n"
+			+ "left join multi_asset ma_handle on ma_handle.id=mto_handle.ident and ma_handle.\"policy\"= decode('f0ff48bbb7bbe9d59a40f1ce90e9e9d0ff5002ec48f232b49ca0fb9a', 'hex')\r\n"
+			+ "group by owners.\"group\"\r\n"
+			+ "order by quantity desc";
 
 	private static final String tokenQuery = "select\r\n"
 			+ "encode(ma.policy::bytea, 'hex') policyId,\r\n"
@@ -163,6 +189,30 @@ public class CardanoDbSyncClient {
 			ResultSet result = getTxInput.executeQuery();
 			List<MintedToken> tokenDatas = parseTokenResultset(result);
 			return tokenDatas;
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	public HunterSnapshot createHunterSnapshot() {
+		try (Connection connection = hds.getConnection()) {
+			PreparedStatement hunterSnapshotStatement = connection.prepareStatement(hunterSnapshotQuery);
+			ResultSet resultSet = hunterSnapshotStatement.executeQuery();
+
+			HunterSnapshot hunterSnapshot = new HunterSnapshot();
+			hunterSnapshot.setHunterSnapshotRows(new ArrayList<>());
+			hunterSnapshot.setTimestamp(new Date());
+
+			while (resultSet.next()) {
+				HunterSnapshotRow hunterSnapshotRow = new HunterSnapshotRow();
+				hunterSnapshotRow.setGroup(resultSet.getString(1));
+				hunterSnapshotRow.setAddress(resultSet.getString(2));
+				hunterSnapshotRow.setHandle(resultSet.getString(3));
+				hunterSnapshotRow.setQuantity(resultSet.getLong(4));
+				hunterSnapshot.getHunterSnapshotRows().add(hunterSnapshotRow);
+			}
+
+			return hunterSnapshot;
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}

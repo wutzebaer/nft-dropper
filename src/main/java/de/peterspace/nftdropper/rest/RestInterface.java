@@ -32,11 +32,13 @@ import org.springframework.web.bind.annotation.RestController;
 import de.peterspace.nftdropper.cardano.CardanoCli;
 import de.peterspace.nftdropper.cardano.CardanoDbSyncClient;
 import de.peterspace.nftdropper.cardano.CardanoDbSyncClient.MintedToken;
+import de.peterspace.nftdropper.component.CharlyHunterService;
 import de.peterspace.nftdropper.component.NftMinter;
 import de.peterspace.nftdropper.component.NftSupplier;
 import de.peterspace.nftdropper.component.ShopItemService;
 import de.peterspace.nftdropper.component.ShopItemService.ShopItem;
 import de.peterspace.nftdropper.model.Address;
+import de.peterspace.nftdropper.model.HunterSnapshot;
 import de.peterspace.nftdropper.repository.AddressRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -60,6 +62,7 @@ public class RestInterface {
 	private final AddressRepository addressRepository;
 	private final ShopItemService shopItemService;
 	private final CardanoDbSyncClient cardanoDbSyncClient;
+	private final CharlyHunterService charlyHunterService;
 
 	@GetMapping("address")
 	public String getAddress() {
@@ -142,6 +145,11 @@ public class RestInterface {
 	@GetMapping("policyTokens")
 	public List<MintedToken> getPolicyTokens() throws DecoderException {
 		return cardanoDbSyncClient.policyTokens(nftMinter.getPolicy().getPolicyId());
+	}
+
+	@GetMapping("currentHunterValues")
+	public HunterSnapshot getCurrentHunterValues() {
+		return charlyHunterService.getCurrentDifference();
 	}
 
 }
