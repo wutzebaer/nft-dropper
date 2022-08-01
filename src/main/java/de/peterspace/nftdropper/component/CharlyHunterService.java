@@ -45,10 +45,11 @@ public class CharlyHunterService {
 		}
 
 		if (hunterSnapshotRepository.count() == 0) {
-			updateSnapshot();
+			HunterSnapshot hunterSnapshot = cardanoDbSyncClient.createHunterSnapshot();
+			hunterSnapshotRepository.save(hunterSnapshot);
 		}
-
 		initialHunterSnapshot = toMap(hunterSnapshotRepository.findFirstByOrderByIdAsc());
+
 		updateDifference(hunterSnapshotRepository.findFirstByOrderByIdDesc());
 	}
 
@@ -58,7 +59,6 @@ public class CharlyHunterService {
 		if (StringUtils.isBlank(charlyToken)) {
 			return;
 		}
-
 		HunterSnapshot hunterSnapshot = cardanoDbSyncClient.createHunterSnapshot();
 		hunterSnapshotRepository.save(hunterSnapshot);
 		updateDifference(hunterSnapshot);
