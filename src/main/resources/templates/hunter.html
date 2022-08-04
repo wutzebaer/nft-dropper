@@ -17,15 +17,13 @@
 		<img th:src="@{/images/hunter.png}">
 	</p>
 
-
-
 	<div id="bowl-content">
 		<div class="hunter-field-boundary">
 			<div class="hunter-field">
 				<div class="hunter-lane-header">
 					<span>0m</span>
-					<span>25m</span>
-					<span>50m</span>
+					<span th:text="${(minTokens/1000000d/2) + 'm'}"></span>
+					<span th:text="${(minTokens/1000000d) + 'm'}"></span>
 				</div>
 				<img id="loading" width="100" height="100" th:src="@{/images/loading-buffering.gif}" />
 			</div>
@@ -69,6 +67,7 @@
 	<script th:inline="javascript">
 		/*<![CDATA[*/
 		var tokenPrice = /*[[${tokenPrice}]]*/0;
+		var minTokens = /*[[${minTokens}]]*/0;
 		/*]]>*/
 	</script>
 	<script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>

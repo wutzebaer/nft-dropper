@@ -1,6 +1,7 @@
 package de.peterspace.nftdropper.component;
 
 import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -11,6 +12,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+
+import com.google.common.base.Objects;
 
 import de.peterspace.nftdropper.TrackExecutionTime;
 import de.peterspace.nftdropper.cardano.CardanoDbSyncClient;
@@ -28,6 +31,9 @@ public class CharlyHunterService {
 
 	@Value("${charly.token}")
 	private String charlyToken;
+
+	@Value("${charly.hunter.min}")
+	private int minTokens;
 
 	// Injects
 	private final CardanoDbSyncClient cardanoDbSyncClient;
@@ -53,14 +59,19 @@ public class CharlyHunterService {
 		updateDifference(hunterSnapshotRepository.findFirstByOrderByIdDesc());
 	}
 
-	@Scheduled(cron = "*/60 * * * * *")
+	@Scheduled(cron = "*/20 * * * * *")
 	@TrackExecutionTime
 	public void updateSnapshot() throws Exception {
 		if (StringUtils.isBlank(charlyToken)) {
 			return;
 		}
 		HunterSnapshot hunterSnapshot = cardanoDbSyncClient.createHunterSnapshot();
-		hunterSnapshotRepository.save(hunterSnapshot);
+		if (!Objects.equal(hunterSnapshot, hunterSnapshotRepository.findFirstByOrderByIdDesc())) {
+			log.info("Saving new snapshot");
+			hunterSnapshotRepository.save(hunterSnapshot);
+		} else {
+			log.info("Snapshot unchanged");
+		}
 		updateDifference(hunterSnapshot);
 	}
 
@@ -69,12 +80,18 @@ public class CharlyHunterService {
 			HunterSnapshotRow initialSnapshot = initialHunterSnapshot.get(row.getGroup());
 			if (initialSnapshot != null) {
 				long quantitiy = row.getQuantity();
-				long newQuantity = Math.max(quantitiy - initialSnapshot.getQuantity(), 0);
+				long newQuantity = Math.min(Math.max(quantitiy - initialSnapshot.getQuantity(), 0), minTokens);
 				row.setQuantity(newQuantity);
 			}
 		}
 		hunterSnapshot.getHunterSnapshotRows().removeIf(r -> r.getQuantity() == 0);
 		hunterSnapshot.getHunterSnapshotRows().sort(Comparator.comparing(HunterSnapshotRow::getQuantity).reversed());
+
+		List<String> toplist = hunterSnapshotRepository.getToplist(minTokens);
+		for (int i = 0; i < toplist.size(); i++) {
+			String group = toplist.get(i);
+			hunterSnapshot.getHunterSnapshotRows().stream().filter(row -> Objects.equal(row.getGroup(), group)).findFirst().get().setRank(i + 1);
+		}
 
 		currentDifference = hunterSnapshot;
 	}

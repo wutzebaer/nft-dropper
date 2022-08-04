@@ -33,6 +33,9 @@ public class IndexController {
 	@Value("${charly.token}")
 	private String charlyToken;
 
+	@Value("${charly.hunter.min}")
+	private int minTokens;
+
 	private final NftSupplier nftSupplier;
 	private final CharlySeller charlySeller;
 	private final NftMinter nftMinter;
@@ -87,6 +90,7 @@ public class IndexController {
 			model.addAttribute("tokenPrice", tokenPrice);
 			model.addAttribute("paymentAddress", charlySeller.getPaymentAddress());
 			model.addAttribute("policyId", charlySeller.getCharlyTokenPolicyId());
+			model.addAttribute("minTokens", minTokens);
 		}
 	}
 

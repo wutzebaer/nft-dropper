@@ -229,7 +229,7 @@ a:hover img {
 	position: absolute;
 	height: 100px;
 	width: 100%;
-	background: url("/images/lane3.jpg");
+	background: url("/images/STEZA RDECA_PNG.png");
 	background-size: 100% 100%;
 	left: 0;
 	padding: inherit;
@@ -249,6 +249,22 @@ a:hover img {
 
 .hunter-lane .hunter img {
 	height: 100%;
+}
+
+.hunter-lane .hunter img.rank {
+	height: 50%;
+	position: absolute;
+	transform: translate(-50%, -50%);
+	top: 50%;
+	left: 0;
+}
+
+.hunter-lane .hunter img.firework {
+	height: 200%;
+	position: absolute;
+	transform: translate(-50%, -50%);
+	top: 50%;
+	left: 50%;
 }
 
 .hunter-lane .hunter .top {

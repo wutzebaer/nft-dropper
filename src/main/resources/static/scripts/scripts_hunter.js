@@ -8,8 +8,15 @@ function updateHunt() {
 			for (row of result.hunterSnapshotRows) {
 
 				if ($('#' + row.group).length) {
-					$('#' + row.group).find('.hunter').css('left', row.quantity / 50_000_000 * 100 + '%');
+					$('#' + row.group).find('.hunter').css('left', row.quantity / minTokens * 100 + '%');
 					$('#' + row.group).data('place', place);
+
+					let hunter = $('#' + row.group).find('.hunter');
+					if (row.rank && hunter.find('.rank').length === 0) {
+						hunter.append(`<img class="rank" src="/images/rank${row.rank}.png">`);
+						setTimeout(() => hunter.append(`<img class="firework" src="/images/firework.gif">`), 2000);
+						setTimeout(() => hunter.find('.firework').remove(), 5000);
+					}
 				} else {
 					$('.hunter-field').append(
 						`
@@ -17,7 +24,7 @@ function updateHunt() {
 							<div class="hunter" style="left: 0%">
 								<span class="top">${row.handle || row.address}</span>
 								<img src="/images/output-onlinegiftools.gif">
-								<span class="bottom">${(Math.round(row.quantity/1000000 * 100) / 100).toFixed(2)}m</span>
+								<span class="bottom">${(Math.round(row.quantity / 1000000 * 100) / 100).toFixed(2)}m</span>
 							</div>
 						</div>
 						`
@@ -25,8 +32,9 @@ function updateHunt() {
 				}
 
 				place++;
-
 			}
+
+
 
 			let existingGroups = result.hunterSnapshotRows.map(r => r.group);
 
