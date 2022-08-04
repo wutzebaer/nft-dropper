@@ -17,7 +17,7 @@ function updateHunt() {
 							<div class="hunter" style="left: 0%">
 								<span class="top">${row.handle || row.address}</span>
 								<img src="/images/output-onlinegiftools.gif">
-								<span class="bottom">${row.quantity}</span>
+								<span class="bottom">${(Math.round(row.quantity/1000000 * 100) / 100).toFixed(2)}m</span>
 							</div>
 						</div>
 						`
@@ -36,9 +36,11 @@ function updateHunt() {
 				}
 			});
 
-			$('.hunter-field').css('height', $('.hunter-lane').length * 110 + 36);
+			let headingHeight = 36;
+			let laneHeight = 130;
+			$('.hunter-field').css('height', $('.hunter-lane').length * laneHeight + headingHeight);
 			$('.hunter-lane').each((i, el) => {
-				$(el).css('top', $(el).data('place') * 110 + 36);
+				$(el).css('top', $(el).data('place') * laneHeight + headingHeight);
 			});
 
 		}
