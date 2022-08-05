@@ -85,13 +85,14 @@ public class CharlyHunterService {
 			}
 		}
 		hunterSnapshot.getHunterSnapshotRows().removeIf(r -> r.getQuantity() == 0);
-		hunterSnapshot.getHunterSnapshotRows().sort(Comparator.comparing(HunterSnapshotRow::getQuantity).reversed());
 
 		List<String> toplist = hunterSnapshotRepository.getToplist(minTokens);
 		for (int i = 0; i < toplist.size(); i++) {
 			String group = toplist.get(i);
 			hunterSnapshot.getHunterSnapshotRows().stream().filter(row -> Objects.equal(row.getGroup(), group)).findFirst().get().setRank(i + 1);
 		}
+
+		hunterSnapshot.getHunterSnapshotRows().sort(Comparator.comparing(HunterSnapshotRow::getQuantity).reversed().thenComparing(HunterSnapshotRow::getRank));
 
 		currentDifference = hunterSnapshot;
 	}
