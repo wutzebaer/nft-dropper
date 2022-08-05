@@ -1,6 +1,9 @@
 package de.peterspace.nftdropper.component;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -35,6 +38,10 @@ public class CharlyHunterService {
 	@Value("${charly.hunter.min}")
 	private int minTokens;
 
+	@Value("${charly.hunter.start}")
+	private String hunterStartString;
+	private long hunterStartTimestamp;
+
 	// Injects
 	private final CardanoDbSyncClient cardanoDbSyncClient;
 	private final HunterSnapshotRepository hunterSnapshotRepository;
@@ -49,23 +56,30 @@ public class CharlyHunterService {
 		if (StringUtils.isBlank(charlyToken)) {
 			return;
 		}
-
-		if (hunterSnapshotRepository.count() == 0) {
-			HunterSnapshot hunterSnapshot = cardanoDbSyncClient.createHunterSnapshot();
-			hunterSnapshotRepository.save(hunterSnapshot);
-		}
-		initialHunterSnapshot = toMap(hunterSnapshotRepository.findFirstByOrderByIdAsc());
-
-		updateDifference(hunterSnapshotRepository.findFirstByOrderByIdDesc());
+		hunterStartTimestamp = new SimpleDateFormat("yyyy-MM-dd HH:mmz").parse(hunterStartString + "UTC").getTime();
+		currentDifference = new HunterSnapshot();
+		currentDifference.setHunterSnapshotRows(List.of());
+		updateSnapshot();
 	}
 
 	@Scheduled(cron = "*/20 * * * * *")
 	@TrackExecutionTime
 	public void updateSnapshot() throws Exception {
-		if (StringUtils.isBlank(charlyToken)) {
+		if (StringUtils.isBlank(charlyToken) || (System.currentTimeMillis() < hunterStartTimestamp)) {
 			return;
 		}
+
 		HunterSnapshot hunterSnapshot = cardanoDbSyncClient.createHunterSnapshot();
+
+		if (initialHunterSnapshot == null) {
+			log.info("Setting initialHunterSnapshot");
+			if (hunterSnapshotRepository.count() == 0) {
+				log.info("Saving first snapshot");
+				hunterSnapshotRepository.save(hunterSnapshot);
+			}
+			initialHunterSnapshot = toMap(hunterSnapshotRepository.findFirstByOrderByIdAsc());
+		}
+
 		if (!Objects.equal(hunterSnapshot, hunterSnapshotRepository.findFirstByOrderByIdDesc())) {
 			log.info("Saving new snapshot");
 			hunterSnapshotRepository.save(hunterSnapshot);

@@ -2,14 +2,19 @@ function updateHunt() {
 	$.ajax({
 		url: "api/currentHunterValues",
 		success: function(result) {
-			// $('.hunter-lane, #loading').remove()
-			$('#loading').remove();
 			let place = 0;
+
+			if (result.hunterSnapshotRows.length) {
+				$('#loading').remove();
+			}
+
+
 			for (row of result.hunterSnapshotRows) {
 
 				if ($('#' + row.group).length) {
 					$('#' + row.group).find('.hunter').css('left', row.quantity / minTokens * 100 + '%');
 					$('#' + row.group).data('place', place);
+					$('#' + row.group).find('.hunter .bottom').text((Math.floor(row.quantity / 1000000 * 1000) / 1000) + 'm');
 
 					let hunter = $('#' + row.group).find('.hunter');
 					if (row.rank && hunter.find('.rank').length === 0) {
@@ -22,7 +27,7 @@ function updateHunt() {
 						`
 						<div class="hunter-lane" id="${row.group}" data-place="${place}">
 							<div class="hunter" style="left: 0%">
-								<span class="top">${row.handle || row.address}</span>
+								<span class="top"><a target="_blank" href="https://cardanoscan.io/search?filter=all&value=${row.address}">${row.handle || row.address}</a></span>
 								<img src="/images/output-onlinegiftools.gif">
 								<span class="bottom">${(Math.floor(row.quantity / 1000000 * 1000) / 1000)}m</span>
 							</div>
@@ -51,9 +56,24 @@ function updateHunt() {
 				$(el).css('top', $(el).data('place') * laneHeight + headingHeight);
 			});
 
+
 		}
 	});
 }
-
 setInterval(updateHunt, 1000);
 updateHunt();
+
+function reveal() {
+	let el = $('[data-countdown]');
+	let end = Date.parse($(el).data('countdown') + 'Z');
+	let now = new Date().getTime();
+	let secondsLeft = Math.max((end - now) / 1000, 0);
+	if (secondsLeft > 0) {
+		$('.hunter-field-boundary').hide();
+	} else {
+		$('.hunter-field-boundary').show();
+	}
+}
+
+setInterval(reveal, 1000);
+reveal();
