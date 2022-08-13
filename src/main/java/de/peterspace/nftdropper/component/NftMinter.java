@@ -283,6 +283,7 @@ public class NftMinter {
 
 		taskExecutor.execute(() -> {
 			try {
+
 				String buyerAddress = transactionInputs.get(0).getSourceAddress();
 
 				log.info("selling {} tokens to {} : {}", tokens.size(), buyerAddress, tokens);
@@ -301,8 +302,17 @@ public class NftMinter {
 					});
 				}
 
+				Optional<TransactionInputs> santoToken = getSantoRiverDiggingToken(transactionInputs);
+				if (santoToken.isPresent()) {
+					transactionOutputs.add(buyerAddress, formatCurrency(santoToken.get().getPolicyId(), santoToken.get().getAssetName()), -santoToken.get().getValue());
+					transactionOutputs.add(sellerAddress, formatCurrency(santoToken.get().getPolicyId(), santoToken.get().getAssetName()), santoToken.get().getValue());
+					transactionOutputs.add(sellerAddress, "", cardanoCli.calculateMinUtxo(transactionOutputs.toCliFormat(sellerAddress)));
+				}
+
 				// min output for tokens
-				transactionOutputs.add(buyerAddress, "", cardanoCli.calculateMinUtxo(transactionOutputs.toCliFormat(buyerAddress)));
+				if (transactionOutputs.getOutputs().containsKey(buyerAddress)) {
+					transactionOutputs.add(buyerAddress, "", cardanoCli.calculateMinUtxo(transactionOutputs.toCliFormat(buyerAddress)));
+				}
 
 				// return change to buyer
 				long change = calculateAvailableFunds(transactionInputs) - lockedFunds - totalPrice;

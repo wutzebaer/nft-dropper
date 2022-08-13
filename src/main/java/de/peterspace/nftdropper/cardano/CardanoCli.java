@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
@@ -36,6 +38,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class CardanoCli {
 
+	private static final Pattern lovelacePattern = Pattern.compile("Lovelace (\\d+)");
 	private static final String PAYMENT_VKEY_FILENAME = "payment.vkey";
 	private static final String PAYMENT_SKEY_FILENAME = "payment.skey";
 	private static final String PAYMENT_ADDR_FILENAME = "payment.addr";
@@ -57,6 +60,9 @@ public class CardanoCli {
 
 	@Value("${working.dir.external}")
 	private String workingDirExternal;
+
+	@Value("${cardano-node.version}")
+	private String nodeVersion;
 
 	private final CardanoNode cardanoNode;
 	private final FileUtil fileUtil;
@@ -80,7 +86,7 @@ public class CardanoCli {
                 "-e", "CARDANO_NODE_SOCKET_PATH=/ipc/node.socket",
                 "-v", ipcVolumeName + ":/ipc",
                 "-v", workingDirExternal + ":/work",
-                "inputoutput/cardano-node:1.34.1"
+                "inputoutput/cardano-node:" + nodeVersion
         };
         // @formatter:on
 		this.networkMagicArgs = cardanoNode.getNetworkMagicArgs();
@@ -263,9 +269,9 @@ public class CardanoCli {
 		cmd.add("transaction");
 		cmd.add("build");
 
-			if ("Babbage".equals(cardanoNode.getEra())) {
-				cmd.add("--babbage-era");
-			}
+		if ("Babbage".equals(cardanoNode.getEra())) {
+			cmd.add("--babbage-era");
+		}
 
 		cmd.add("--change-address");
 		cmd.add(changeAddress);
@@ -325,7 +331,20 @@ public class CardanoCli {
 
 		cmd.addAll(List.of(networkMagicArgs));
 
-		ProcessUtil.runCommand(cmd.toArray(new String[0]));
+		try {
+			ProcessUtil.runCommand(cmd.toArray(new String[0]));
+		} catch (Exception e) {
+			String message = StringUtils.trimToEmpty(e.getMessage());
+			if (message.contains("(change output)")) {
+				Matcher matcher = lovelacePattern.matcher(e.getMessage());
+				matcher.find();
+				Long missingFunds = Long.valueOf(matcher.group(1));
+				transactionOutputs.add(transactionOutputs.getOutputs().keySet().iterator().next(), "", missingFunds);
+				return buildTransaction(transactionInputs, transactionOutputs, metaData, policy, changeAddress);
+			} else {
+				throw e;
+			}
+		}
 
 		if (metaData != null) {
 			fileUtil.removeFile(metadataFilename);
