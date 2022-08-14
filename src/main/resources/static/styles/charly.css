@@ -275,9 +275,9 @@ a:hover img {
 }
 
 .hunter-lane .hunter img.rank {
-	height: 50%;
+	height: 75%;
 	position: absolute;
-	transform: translate(-50%, -50%);
+	transform: translate(0, -50%);
 	top: 50%;
 	left: 0;
 }

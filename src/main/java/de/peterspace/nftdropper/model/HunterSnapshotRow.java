@@ -10,13 +10,17 @@ import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
 @Entity
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class HunterSnapshotRow {
+
 	@Id
 	@NotBlank
 	@Column(name = "\"group\"")
+	@EqualsAndHashCode.Include
 	private String group;
 
 	@NotBlank

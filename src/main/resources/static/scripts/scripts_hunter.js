@@ -19,10 +19,14 @@ function updateHunt() {
 					$('#' + row.group).find('.hunter .bottom').text((Math.floor(row.quantity / 1000000 * 1000) / 1000) + 'm');
 
 					let hunter = $('#' + row.group).find('.hunter');
-					if (row.rank && hunter.find('.rank').length === 0) {
-						hunter.append(`<img class="rank" src="/images/rank${row.rank}.png">`);
-						setTimeout(() => hunter.append(`<img class="firework" src="/images/firework.gif">`), 2000);
-						setTimeout(() => hunter.find('.firework').remove(), 5000);
+					if (row.rank) {
+						if (hunter.find('.rank').length === 0) {
+							hunter.append(`<img class="rank" src="/images/rank${row.rank}.png">`);
+							setTimeout(() => hunter.append(`<img class="firework" src="/images/firework.gif">`), 2000);
+							setTimeout(() => hunter.find('.firework').remove(), 5000);
+						}
+					} else {
+						hunter.find('.rank').remove();
 					}
 				} else {
 					$('.hunter-field').append(

@@ -55,6 +55,7 @@ public class CharlyHunterService {
 	}
 
 	@Scheduled(cron = "*/20 * * * * *")
+	@TrackExecutionTime
 	public void updateSnapshot() throws Exception {
 		if (StringUtils.isBlank(charlyToken) || (System.currentTimeMillis() < hunterStartTimestamp)) {
 			return;
@@ -77,7 +78,7 @@ public class CharlyHunterService {
 			});
 
 			long newQuantity = Math.min(Math.max(chainRow.getQuantity() - localRow.getStartQuantity(), 0), minTokens);
-			if (newQuantity > localRow.getQuantity()) {
+			if (newQuantity != localRow.getQuantity()) {
 				log.info("{} raised tokens to {}", localRow.getGroup(), newQuantity);
 				localRow.setQuantity(newQuantity);
 				localRow.setTimestamp(new Date());
@@ -85,6 +86,7 @@ public class CharlyHunterService {
 			}
 		}
 
+		localSnapshot.values().retainAll(chainSnapshot);
 		localSnapshot.values().removeIf(v -> v.getQuantity() == 0);
 
 		List<HunterSnapshotRow> newToplist = new ArrayList<>(localSnapshot.values());
