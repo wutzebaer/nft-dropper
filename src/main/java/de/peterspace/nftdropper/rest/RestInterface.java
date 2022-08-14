@@ -38,7 +38,7 @@ import de.peterspace.nftdropper.component.NftSupplier;
 import de.peterspace.nftdropper.component.ShopItemService;
 import de.peterspace.nftdropper.component.ShopItemService.ShopItem;
 import de.peterspace.nftdropper.model.Address;
-import de.peterspace.nftdropper.model.HunterSnapshot;
+import de.peterspace.nftdropper.model.HunterSnapshotRow;
 import de.peterspace.nftdropper.repository.AddressRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -148,8 +148,8 @@ public class RestInterface {
 	}
 
 	@GetMapping("currentHunterValues")
-	public HunterSnapshot getCurrentHunterValues() {
-		return charlyHunterService.getCurrentDifference();
+	public List<HunterSnapshotRow> getCurrentHunterValues() {
+		return charlyHunterService.getCurrentToplist();
 	}
 
 }

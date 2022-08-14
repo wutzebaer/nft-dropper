@@ -6,13 +6,12 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.PagingAndSortingRepository;
 import org.springframework.stereotype.Repository;
 
-import de.peterspace.nftdropper.model.HunterSnapshot;
+import de.peterspace.nftdropper.model.HunterSnapshotRow;
 
 @Repository
-public interface HunterSnapshotRepository extends PagingAndSortingRepository<HunterSnapshot, Long> {
-	HunterSnapshot findFirstByOrderByIdAsc();
+public interface HunterSnapshotRowtRepository extends PagingAndSortingRepository<HunterSnapshotRow, String> {
 
-	HunterSnapshot findFirstByOrderByIdDesc();
+	List<HunterSnapshotRow> findAll();
 
 	@Query(value = ""
 			+ "SELECT min(hr.\"group\") "

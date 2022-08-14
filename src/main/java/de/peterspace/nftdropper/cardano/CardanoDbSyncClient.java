@@ -7,7 +7,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -21,7 +20,6 @@ import org.springframework.stereotype.Component;
 
 import com.zaxxer.hikari.HikariDataSource;
 
-import de.peterspace.nftdropper.model.HunterSnapshot;
 import de.peterspace.nftdropper.model.HunterSnapshotRow;
 import de.peterspace.nftdropper.model.TransactionInputs;
 import lombok.RequiredArgsConstructor;
@@ -195,14 +193,12 @@ public class CardanoDbSyncClient {
 		}
 	}
 
-	public HunterSnapshot createHunterSnapshot() {
+	public List<HunterSnapshotRow> createHunterSnapshot() {
 		try (Connection connection = hds.getConnection()) {
 			PreparedStatement hunterSnapshotStatement = connection.prepareStatement(hunterSnapshotQuery);
 			ResultSet resultSet = hunterSnapshotStatement.executeQuery();
 
-			HunterSnapshot hunterSnapshot = new HunterSnapshot();
-			hunterSnapshot.setHunterSnapshotRows(new ArrayList<>());
-			hunterSnapshot.setTimestamp(new Date());
+			List<HunterSnapshotRow> rows = new ArrayList<>();
 
 			while (resultSet.next()) {
 				HunterSnapshotRow hunterSnapshotRow = new HunterSnapshotRow();
@@ -210,10 +206,10 @@ public class CardanoDbSyncClient {
 				hunterSnapshotRow.setAddress(resultSet.getString(2));
 				hunterSnapshotRow.setHandle(resultSet.getString(3));
 				hunterSnapshotRow.setQuantity(resultSet.getLong(4));
-				hunterSnapshot.getHunterSnapshotRows().add(hunterSnapshotRow);
+				rows.add(hunterSnapshotRow);
 			}
 
-			return hunterSnapshot;
+			return rows;
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}

@@ -259,8 +259,10 @@ a:hover img {
 
 .hunter-lane .hunter {
 	position: absolute;
-	transform: translate(-50%, 0);
-	height: 100%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	height: calc(100% + 40px);
+	width: 200px;
 	font-weight: 700;
 	font-size: 14px;
 	transition: left 2s;
@@ -269,6 +271,7 @@ a:hover img {
 
 .hunter-lane .hunter img {
 	height: 100%;
+	padding: 20px 0;
 }
 
 .hunter-lane .hunter img.rank {

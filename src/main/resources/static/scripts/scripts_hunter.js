@@ -4,12 +4,14 @@ function updateHunt() {
 		success: function(result) {
 			let place = 0;
 
-			if (result.hunterSnapshotRows.length) {
-				$('#loading').remove();
+			if (result.length) {
+				$('#loading').hide();
+			} else {
+				$('#loading').show();
 			}
 
 
-			for (row of result.hunterSnapshotRows) {
+			for (row of result) {
 
 				if ($('#' + row.group).length) {
 					$('#' + row.group).find('.hunter').css('left', row.quantity / minTokens * 100 + '%');
@@ -28,7 +30,7 @@ function updateHunt() {
 						<div class="hunter-lane" id="${row.group}" data-place="${place}">
 							<div class="hunter" style="left: 0%">
 								<span class="top"><a target="_blank" href="https://cardanoscan.io/search?filter=all&value=${row.address}">${row.handle || row.address}</a></span>
-								<img src="/images/output-onlinegiftools.gif">
+								<img src="/images/walking_.gif">
 								<span class="bottom">${(Math.floor(row.quantity / 1000000 * 1000) / 1000)}m</span>
 							</div>
 						</div>
@@ -41,7 +43,7 @@ function updateHunt() {
 
 
 
-			let existingGroups = result.hunterSnapshotRows.map(r => r.group);
+			let existingGroups = result.map(r => r.group);
 
 			$('.hunter-lane').each((i, el) => {
 				if (existingGroups.indexOf($(el).attr('id')) === -1) {
@@ -49,8 +51,8 @@ function updateHunt() {
 				}
 			});
 
-			let headingHeight = 36;
-			let laneHeight = 130;
+			let headingHeight = 56;
+			let laneHeight = 140;
 			$('.hunter-field').css('height', $('.hunter-lane').length * laneHeight + headingHeight);
 			$('.hunter-lane').each((i, el) => {
 				$(el).css('top', $(el).data('place') * laneHeight + headingHeight);

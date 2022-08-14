@@ -1,7 +1,7 @@
 package de.peterspace.nftdropper.component;
 
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
@@ -16,13 +16,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import com.google.common.base.Objects;
-
 import de.peterspace.nftdropper.TrackExecutionTime;
 import de.peterspace.nftdropper.cardano.CardanoDbSyncClient;
-import de.peterspace.nftdropper.model.HunterSnapshot;
 import de.peterspace.nftdropper.model.HunterSnapshotRow;
-import de.peterspace.nftdropper.repository.HunterSnapshotRepository;
+import de.peterspace.nftdropper.repository.HunterSnapshotRowtRepository;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,12 +41,10 @@ public class CharlyHunterService {
 
 	// Injects
 	private final CardanoDbSyncClient cardanoDbSyncClient;
-	private final HunterSnapshotRepository hunterSnapshotRepository;
-
-	private Map<String, HunterSnapshotRow> initialHunterSnapshot;
+	private final HunterSnapshotRowtRepository hunterSnapshotRepository;
 
 	@Getter
-	private HunterSnapshot currentDifference;
+	private List<HunterSnapshotRow> currentToplist = new ArrayList<>();
 
 	@PostConstruct
 	public void init() throws Exception {
@@ -57,62 +52,58 @@ public class CharlyHunterService {
 			return;
 		}
 		hunterStartTimestamp = new SimpleDateFormat("yyyy-MM-dd HH:mmz").parse(hunterStartString + "UTC").getTime();
-		currentDifference = new HunterSnapshot();
-		currentDifference.setHunterSnapshotRows(List.of());
-		updateSnapshot();
 	}
 
 	@Scheduled(cron = "*/20 * * * * *")
-	@TrackExecutionTime
 	public void updateSnapshot() throws Exception {
 		if (StringUtils.isBlank(charlyToken) || (System.currentTimeMillis() < hunterStartTimestamp)) {
 			return;
 		}
 
-		HunterSnapshot hunterSnapshot = cardanoDbSyncClient.createHunterSnapshot();
+		List<HunterSnapshotRow> chainSnapshot = cardanoDbSyncClient.createHunterSnapshot();
+		Map<String, HunterSnapshotRow> localSnapshot = toMap(hunterSnapshotRepository.findAll());
 
-		if (initialHunterSnapshot == null) {
-			log.info("Setting initialHunterSnapshot");
-			if (hunterSnapshotRepository.count() == 0) {
-				log.info("Saving first snapshot");
-				hunterSnapshotRepository.save(hunterSnapshot);
-			}
-			initialHunterSnapshot = toMap(hunterSnapshotRepository.findFirstByOrderByIdAsc());
-		}
+		for (HunterSnapshotRow chainRow : chainSnapshot) {
+			HunterSnapshotRow localRow = localSnapshot.computeIfAbsent(chainRow.getGroup(), c -> {
+				HunterSnapshotRow newRow = new HunterSnapshotRow();
+				newRow.setAddress(chainRow.getAddress());
+				newRow.setGroup(chainRow.getGroup());
+				newRow.setHandle(chainRow.getHandle());
+				newRow.setQuantity(0);
+				newRow.setStartQuantity(chainRow.getQuantity());
+				newRow.setTimestamp(new Date());
+				hunterSnapshotRepository.save(newRow);
+				return newRow;
+			});
 
-		if (!Objects.equal(hunterSnapshot, hunterSnapshotRepository.findFirstByOrderByIdDesc())) {
-			log.info("Saving new snapshot");
-			hunterSnapshotRepository.save(hunterSnapshot);
-		} else {
-			log.info("Snapshot unchanged");
-		}
-		updateDifference(hunterSnapshot);
-	}
-
-	private void updateDifference(HunterSnapshot hunterSnapshot) throws Exception {
-		for (HunterSnapshotRow row : hunterSnapshot.getHunterSnapshotRows()) {
-			HunterSnapshotRow initialSnapshot = initialHunterSnapshot.get(row.getGroup());
-			if (initialSnapshot != null) {
-				long quantitiy = row.getQuantity();
-				long newQuantity = Math.min(Math.max(quantitiy - initialSnapshot.getQuantity(), 0), minTokens);
-				row.setQuantity(newQuantity);
+			long newQuantity = Math.min(Math.max(chainRow.getQuantity() - localRow.getStartQuantity(), 0), minTokens);
+			if (newQuantity > localRow.getQuantity()) {
+				log.info("{} raised tokens to {}", localRow.getGroup(), newQuantity);
+				localRow.setQuantity(newQuantity);
+				localRow.setTimestamp(new Date());
+				hunterSnapshotRepository.save(localRow);
 			}
 		}
-		hunterSnapshot.getHunterSnapshotRows().removeIf(r -> r.getQuantity() == 0);
 
-		List<String> toplist = hunterSnapshotRepository.getToplist(minTokens);
-		for (int i = 0; i < toplist.size(); i++) {
-			String group = toplist.get(i);
-			hunterSnapshot.getHunterSnapshotRows().stream().filter(row -> Objects.equal(row.getGroup(), group)).findFirst().get().setRank(i + 1);
+		localSnapshot.values().removeIf(v -> v.getQuantity() == 0);
+
+		List<HunterSnapshotRow> newToplist = new ArrayList<>(localSnapshot.values());
+		newToplist.sort(Comparator
+				.comparing(HunterSnapshotRow::getQuantity, Comparator.reverseOrder())
+				.thenComparing(HunterSnapshotRow::getTimestamp));
+
+		for (int i = 0; i < newToplist.size(); i++) {
+			HunterSnapshotRow row = newToplist.get(i);
+			if (row.getQuantity() >= minTokens) {
+				row.setRank(i + 1);
+			}
 		}
 
-		hunterSnapshot.getHunterSnapshotRows().sort(Comparator.comparing(HunterSnapshotRow::getQuantity).reversed().thenComparing(HunterSnapshotRow::getRank));
-
-		currentDifference = hunterSnapshot;
+		currentToplist = newToplist;
 	}
 
-	private Map<String, HunterSnapshotRow> toMap(HunterSnapshot hunterSnapshot) {
-		return hunterSnapshot.getHunterSnapshotRows()
+	private Map<String, HunterSnapshotRow> toMap(List<HunterSnapshotRow> rows) {
+		return rows
 				.stream()
 				.collect(Collectors.toMap(r -> r.getGroup(), Function.identity()));
 	}
