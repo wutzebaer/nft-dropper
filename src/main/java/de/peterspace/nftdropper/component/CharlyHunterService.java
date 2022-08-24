@@ -57,7 +57,7 @@ public class CharlyHunterService {
 		hunterStartTimestamp = new SimpleDateFormat("yyyy-MM-dd HH:mmz").parse(hunterStartString + "UTC").getTime();
 	}
 
-	@Scheduled(fixedRate = 20000, initialDelay = 0)
+	@Scheduled(fixedRate = 1_000 * 60 * 5, initialDelay = 0)
 	@TrackExecutionTime
 	public void updateSnapshot() throws Exception {
 		if (StringUtils.isBlank(charlyToken)) {
