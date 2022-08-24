@@ -46,6 +46,9 @@ public class CharlyHunterService {
 	@Getter
 	private List<HunterSnapshotRow> currentToplist = new ArrayList<>();
 
+	@Getter
+	private List<HunterSnapshotRow> chainSnapshot = new ArrayList<>();
+
 	@PostConstruct
 	public void init() throws Exception {
 		if (StringUtils.isBlank(charlyToken)) {
@@ -54,14 +57,23 @@ public class CharlyHunterService {
 		hunterStartTimestamp = new SimpleDateFormat("yyyy-MM-dd HH:mmz").parse(hunterStartString + "UTC").getTime();
 	}
 
-	@Scheduled(cron = "*/20 * * * * *")
+	@Scheduled(fixedRate = 20000, initialDelay = 0)
 	@TrackExecutionTime
 	public void updateSnapshot() throws Exception {
-		if (StringUtils.isBlank(charlyToken) || (System.currentTimeMillis() < hunterStartTimestamp)) {
+		if (StringUtils.isBlank(charlyToken)) {
 			return;
 		}
 
-		List<HunterSnapshotRow> chainSnapshot = cardanoDbSyncClient.createHunterSnapshot();
+		if (this.chainSnapshot.isEmpty()) {
+			log.info("Initializing charly chainSnapshot");
+		}
+
+		this.chainSnapshot = cardanoDbSyncClient.createHunterSnapshot();
+
+		if (System.currentTimeMillis() < hunterStartTimestamp) {
+			return;
+		}
+
 		Map<String, HunterSnapshotRow> localSnapshot = toMap(hunterSnapshotRepository.findAll());
 
 		for (HunterSnapshotRow chainRow : chainSnapshot) {

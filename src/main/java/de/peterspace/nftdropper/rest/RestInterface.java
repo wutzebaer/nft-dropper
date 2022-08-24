@@ -152,4 +152,9 @@ public class RestInterface {
 		return charlyHunterService.getCurrentToplist();
 	}
 
+	@GetMapping("currentCharlyHolders")
+	public List<HunterSnapshotRow> getCurrentCharlyHolders() {
+		return charlyHunterService.getChainSnapshot();
+	}
+
 }

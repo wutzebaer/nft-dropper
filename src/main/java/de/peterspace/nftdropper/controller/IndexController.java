@@ -48,7 +48,7 @@ public class IndexController {
 	public String index(Model model) {
 		addAttributes(model);
 		if (!StringUtils.isBlank(charlyToken)) {
-			return "index3";
+			return "charly_index";
 		}
 		return "index";
 	}
@@ -59,22 +59,22 @@ public class IndexController {
 		return "index2";
 	}
 
-	@GetMapping("/index3.html")
-	public String index3(Model model) {
-		addAttributes(model);
-		return "index3";
-	}
-
 	@GetMapping("/bowl")
 	public String bowl(Model model) {
 		addAttributes(model);
-		return "bowl";
+		return "charly_bowl";
 	}
 
-	@GetMapping("/hunter")
+	@GetMapping("/hunter1")
 	public String hunter(Model model) {
 		addAttributes(model);
-		return "hunter";
+		return "charly_hunter1";
+	}
+
+	@GetMapping("/holders")
+	public String holders(Model model) {
+		addAttributes(model);
+		return "charly_holders";
 	}
 
 	private void addAttributes(Model model) {

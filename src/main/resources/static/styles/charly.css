@@ -195,18 +195,25 @@ a:hover {
 	width: 200px;
 }
 
-.countdown {
+
+.race-font {
 	font-family: BlackOpsOne;
+	font-weight: normal;
+}
+
+.main-link {
 	text-align: center;
 	color: #CC2F2C;
 	font-size: 36px;
+	font-weight: 700;
 }
 
-.countdown a {
+.main-link a {
 	color: inherit;
 	text-decoration: none;
 }
-.countdown a:hover {
+
+.main-link a:hover {
 	text-decoration: underline;
 }
 

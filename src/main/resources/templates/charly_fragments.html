@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+</head>
+<body>
+	<div th:fragment="header">
+		<p id="logo-line">
+			<a href="/">
+				<img th:src="@{/images/KCharles logo 2000x2000px.png}">
+			</a>
+		</p>
+	</div>
+
+	<div th:fragment="footer">
+		<p id="policy-line">
+			Token Policy ID <br>
+			<span th:text="${policyId}"></span>
+			<br> NFT Policy ID<br>
+			<a href="https://www.jpg.store/collection/be3ee9322ec94d5446bfc1fdc582cb83a0f9bcbcec2ebd928d71175d" target="_blank">be3ee9322ec94d5446bfc1fdc582cb83a0f9bcbcec2ebd928d71175d</a>
+			<br> Charly hood collection<br>
+			<a href="https://www.jpg.store/collection/78125194aefda7242d61099cb700552a0126d2370de3c9105cb23362" target="_blank">78125194aefda7242d61099cb700552a0126d2370de3c9105cb23362</a>
+		</p>
+
+
+
+		<p id="social-line">
+			<a style="color: #5865F2" target="_blank" href="https://discord.gg/ArH9udyKTN">
+				<i class="bi bi-discord"></i>
+			</a>
+			<a style="color: #1DA1F2" target="_blank" href="https://twitter.com/Charlytoken7">
+				<i class="bi bi-twitter"></i>
+			</a>
+			<a style="color: #2AABEE" target="_blank" href="https://t.me/charlytoken7">
+				<i class="bi bi-telegram"></i>
+			</a>
+		</p>
+
+		<p id="powered-line">
+			POWERED BY
+			<a target="_blank" href="https://cardano-tools.io">
+				<img th:src="@{/images/logo_small_ct.png}">
+			</a>
+		</p>
+	</div>
+
+
+</body>
+</html>
