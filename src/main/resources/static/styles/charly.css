@@ -19,6 +19,17 @@ body {
 	font-family: verdana, arial, helvetica, sans-serif;
 }
 
+.content-wrapper {
+	width: 100%;
+	display: flex;
+	justify-content: center;
+}
+
+.content {
+	width: 100%;
+	max-width: 1200px;
+}
+
 [data-bs-toggle=modal] {
 	cursor: pointer;
 }
@@ -39,6 +50,13 @@ h1 {
 	font-size: 75px;
 	color: #CC2F2C;
 	text-align: center;
+}
+
+h2 {
+	font-family: uwch;
+	font-size: 35px;
+	color: #CC2F2C;
+	text-align: left;
 }
 
 /* BUTTONS */
@@ -195,14 +213,19 @@ a:hover {
 	width: 200px;
 }
 
-
 .race-font {
 	font-family: BlackOpsOne;
 	font-weight: normal;
 }
 
+.main-link-wrapper {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+
 .main-link {
-	text-align: center;
+	text-align: left;
 	color: #CC2F2C;
 	font-size: 36px;
 	font-weight: 700;
@@ -324,4 +347,21 @@ a:hover {
 	background-color: white;
 	border-radius: 5px;
 	padding: 0 2px;
+}
+
+.token-list {
+	display: inline-flex;
+	flex-wrap: wrap;
+	justify-content: space-between;
+	gap: 10px;
+	margin-bottom: 50px;
+}
+
+.token {
+	width: 300px;
+}
+
+.token img {
+	width: 100%;
+	object-fit: scale-down;
 }

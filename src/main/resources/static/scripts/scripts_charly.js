@@ -12,7 +12,6 @@ $(document).ready(function() {
 	setInterval(updateCountdown, 1000);
 	updateCountdown();
 
-
 });
 
 function updateCountdown() {

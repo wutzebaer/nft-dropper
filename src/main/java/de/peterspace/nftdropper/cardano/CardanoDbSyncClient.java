@@ -7,21 +7,32 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
 import org.apache.commons.codec.DecoderException;
+import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.lang3.StringUtils;
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Component;
 
 import com.zaxxer.hikari.HikariDataSource;
 
+import de.peterspace.nftdropper.TrackExecutionTime;
+import de.peterspace.nftdropper.model.FullTokenData;
 import de.peterspace.nftdropper.model.HunterSnapshotRow;
+import de.peterspace.nftdropper.model.TokenData;
 import de.peterspace.nftdropper.model.TransactionInputs;
+import de.peterspace.nftdropper.util.CardanoUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -74,6 +85,30 @@ public class CardanoDbSyncClient {
 			+ "left join tx_metadata tm on tm.tx_id = t.id \r\n"
 			+ "join block b on b.id = t.block_id \r\n"
 			+ "join multi_asset ma on ma.id = mtm.ident ";
+
+	private static final String tokenQuery2 = "select "
+			+ "encode(ma.policy::bytea, 'hex') policyId, "
+			+ "ma.name tokenName, "
+			+ "mtm.quantity, "
+			+ "encode(t.hash ::bytea, 'hex') txId, "
+			+ "tm.json->encode(ma.policy::bytea, 'hex')->encode(ma.name::bytea, 'escape') json, "
+			+ "t.invalid_before, "
+			+ "t.invalid_hereafter, "
+			+ "b.block_no, "
+			+ "b.epoch_no, "
+			+ "b.epoch_slot_no,  "
+			+ "t.id tid,  "
+			+ "mtm.id mintid, "
+			+ "b.slot_no, "
+			+ "(select sum(quantity) from ma_tx_mint mtm2 where mtm2.ident = mtm.ident) total_supply, "
+			+ "ma.fingerprint, "
+			+ "jsonb_pretty(s2.json) \"policy\" "
+			+ "from ma_tx_mint mtm "
+			+ "join tx t on t.id = mtm.tx_id  "
+			+ "left join tx_metadata tm on tm.tx_id = t.id and tm.key=721  "
+			+ "join block b on b.id = t.block_id  "
+			+ "join multi_asset ma on ma.id = mtm.ident "
+			+ "join script s2 on s2.hash=ma.\"policy\" ";
 
 	private static final String utxoQuery = "select uv.id uvid, max(encode(t2.hash::bytea, 'hex')) txhash, max(uv.\"index\") txix, max(uv.value) \"value\", max(to2.stake_address_id) stake_address, max(to2.address) source_address, '' policyId, '' assetName, null metadata\r\n"
 			+ "from utxo_view uv\r\n"
@@ -232,6 +267,124 @@ public class CardanoDbSyncClient {
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	@TrackExecutionTime
+	@Cacheable("findTokens")
+	public List<FullTokenData> findTokens(String string, Long fromMintid) throws DecoderException {
+
+		log.info("findTokens");
+
+		try (Connection connection = hds.getConnection()) {
+
+			String findTokenQuery = "SELECT * FROM ( ";
+			findTokenQuery += "SELECT U.*, row_number() over(PARTITION by  policyId, tokenName order by mintid desc) rn FROM ( ";
+
+			Map<Integer, Object> fillPlaceholders = new HashMap<>();
+
+			String[] bits = string.split("\\.");
+			if (bits.length == 2 && bits[0].length() == 56) {
+				findTokenQuery += CardanoDbSyncClient.tokenQuery2;
+				findTokenQuery += "WHERE ";
+				findTokenQuery += "ma.policy=? AND ma.name=? ";
+
+				fillPlaceholders.put(1, Hex.decodeHex(bits[0]));
+				fillPlaceholders.put(2, bits[1].getBytes(StandardCharsets.UTF_8));
+				if (fromMintid != null)
+					fillPlaceholders.put(3, fromMintid);
+
+			} else if (bits.length == 1 && bits[0].length() == 56) {
+				findTokenQuery += CardanoDbSyncClient.tokenQuery2;
+				findTokenQuery += "WHERE ";
+				findTokenQuery += "ma.policy=?";
+
+				fillPlaceholders.put(1, Hex.decodeHex(bits[0]));
+				if (fromMintid != null)
+					fillPlaceholders.put(2, fromMintid);
+
+			} else if (string.length() == 44 && string.startsWith("asset")) {
+				System.err.println("");
+				findTokenQuery += CardanoDbSyncClient.tokenQuery2;
+				findTokenQuery += "WHERE ";
+				findTokenQuery += "ma.fingerprint=?";
+				fillPlaceholders.put(1, string);
+				if (fromMintid != null)
+					fillPlaceholders.put(2, fromMintid);
+			} else {
+				findTokenQuery += CardanoDbSyncClient.tokenQuery2;
+				findTokenQuery += "WHERE ";
+				findTokenQuery += "to_tsvector('english',json) @@ to_tsquery(?) ";
+				findTokenQuery += "and to_tsvector('english',tm.json->encode(ma.policy::bytea, 'hex')->convert_from(ma.name, 'UTF8')) @@ to_tsquery(?) ";
+
+				String tsquery = string.trim().replaceAll("[^A-Za-z0-9]+", " & ");
+				fillPlaceholders.put(1, tsquery);
+				fillPlaceholders.put(2, tsquery);
+				if (fromMintid != null)
+					fillPlaceholders.put(3, fromMintid);
+			}
+
+			findTokenQuery += ") AS U where U.quantity > 0 ";
+			findTokenQuery += ") as numbered ";
+
+			findTokenQuery += "where rn = 1 ";
+			if (fromMintid != null)
+				findTokenQuery += "and mintid > ? ";
+
+			findTokenQuery += "order by epoch_no, tokenname ";
+			findTokenQuery += "limit 1000 ";
+
+			PreparedStatement getTxInput = connection.prepareStatement(findTokenQuery);
+			for (Entry<Integer, Object> entry : fillPlaceholders.entrySet()) {
+				getTxInput.setObject(entry.getKey(), entry.getValue());
+			}
+
+			ResultSet result = getTxInput.executeQuery();
+			List<FullTokenData> tokenDatas = parseTokenResultset2(result);
+			return tokenDatas;
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	private List<FullTokenData> parseTokenResultset2(ResultSet result) throws SQLException {
+		List<FullTokenData> tokenDatas = new ArrayList<>();
+		while (result.next()) {
+
+			FullTokenData tokenData = new FullTokenData();
+			tokenData.setPolicyId(result.getString(1));
+			tokenData.setName(new String(result.getBytes(2), StandardCharsets.UTF_8));
+			tokenData.setQuantity(result.getLong(3));
+			tokenData.setTxId(result.getString(4));
+			tokenData.setJson(result.getString(5));
+
+			if (!StringUtils.isBlank(tokenData.getJson())) {
+				tokenData.setMetadata(new JSONObject(tokenData.getJson()));
+			} else {
+				continue;
+			}
+
+			tokenData.setInvalid_before(result.getLong(6));
+			if (result.wasNull()) {
+				tokenData.setInvalid_before(null);
+			}
+			tokenData.setInvalid_hereafter(result.getLong(7));
+			if (result.wasNull()) {
+				tokenData.setInvalid_hereafter(null);
+			}
+			tokenData.setBlockNo(result.getLong(8));
+			tokenData.setEpochNo(result.getLong(9));
+			tokenData.setEpochSlotNo(result.getLong(10));
+			tokenData.setTid(result.getLong(11));
+			tokenData.setMintid(result.getLong(12));
+			tokenData.setSlotNo(result.getLong(13));
+			tokenData.setTotalSupply(result.getLong(14));
+			tokenData.setFingerprint(result.getString(15));
+			tokenDatas.add(tokenData);
+
+			tokenData.setPolicy(result.getString(16));
+		}
+
+		return tokenDatas;
 	}
 
 	private List<MintedToken> parseTokenResultset(ResultSet result) throws SQLException {

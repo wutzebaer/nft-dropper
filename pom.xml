@@ -75,6 +75,16 @@
 			<version>1.6.6</version>
 		</dependency>
 
+		<!-- cache -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-cache</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.ehcache</groupId>
+			<artifactId>ehcache</artifactId>
+		</dependency>
+
 		<!-- DB -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

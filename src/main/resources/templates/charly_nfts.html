@@ -1,0 +1,53 @@
+<!DOCTYPE HTML>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+<title>Cavalier King Charles - Charly</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+<link th:href="@{/styles/charly.css}" rel="stylesheet" />
+<link rel="icon" type="image/png" th:href="@{/images/King Charles_logo_small.png}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.1/font/bootstrap-icons.css">
+</head>
+<body>
+
+	<div class="content-wrapper">
+		<div class="content">
+			<div th:replace="charly_fragments :: header"></div>
+
+			<h1>Charlys Cnfts</h1>
+
+			<h2>NFT Policy ID</h2>
+			<div class="token-list">
+				<div class="token" th:each="token : ${charlyTokenService.getTokens('be3ee9322ec94d5446bfc1fdc582cb83a0f9bcbcec2ebd928d71175d')}">
+					<div th:text="${token.metadata?.getString('name')}"></div>
+					<img loading="lazy" th:if="${token.metadata?.getString('image')}" th:src="${'https://ipfs.cardano-tools.io/ipfs/' + charlyTokenService.right(token.metadata.getString('image'), 46)}"></img>
+				</div>
+			</div>
+
+			<h2>Charly hood collection</h2>
+			<div class="token-list">
+				<div class="token" th:each="token : ${charlyTokenService.getTokens('78125194aefda7242d61099cb700552a0126d2370de3c9105cb23362')}">
+					<div th:text="${token.metadata?.getString('name')}"></div>
+					<img loading="lazy" th:if="${token.metadata?.getString('image')}" th:src="${'https://ipfs.cardano-tools.io/ipfs/' + charlyTokenService.right(token.metadata.getString('image'), 46)}"></img>
+				</div>
+			</div>
+
+			<h2>Certificates of Charlys Kingdom</h2>
+			<div class="token-list">
+				<div class="token" th:each="token : ${charlyTokenService.getTokens('381cdcae25c7554340af1e50bef04763850c63c149a49e297bfa262b')}">
+					<div th:text="${token.metadata?.getString('name')}"></div>
+					<img loading="lazy" th:if="${token.metadata?.getString('image')}" th:src="${'https://ipfs.cardano-tools.io/ipfs/' + charlyTokenService.right(token.metadata.getString('image'), 46)}"></img>
+				</div>
+			</div>
+
+			<div th:replace="charly_fragments :: footer"></div>
+		</div>
+	</div>
+
+	<script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.0/clipboard.min.js"></script>
+	<script th:src="@{/scripts/scripts_charly.js}"></script>
+</body>
+</html>

@@ -1,7 +1,5 @@
 package de.peterspace.nftdropper.controller;
 
-import java.util.ArrayList;
-
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
@@ -9,6 +7,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 
 import de.peterspace.nftdropper.component.CharlySeller;
+import de.peterspace.nftdropper.component.CharlyTokenService;
 import de.peterspace.nftdropper.component.NftMinter;
 import de.peterspace.nftdropper.component.NftSupplier;
 import de.peterspace.nftdropper.component.ShopItemService;
@@ -43,6 +42,7 @@ public class IndexController {
 	private final CharlySeller charlySeller;
 	private final NftMinter nftMinter;
 	private final ShopItemService shopItemService;
+	private final CharlyTokenService charlyTokenService;
 
 	@GetMapping("/")
 	public String index(Model model) {
@@ -75,6 +75,13 @@ public class IndexController {
 	public String holders(Model model) {
 		addAttributes(model);
 		return "charly_holders";
+	}
+
+	@GetMapping("/nfts")
+	public String nfts(Model model) {
+		addAttributes(model);
+		model.addAttribute("charlyTokenService", charlyTokenService);
+		return "charly_nfts";
 	}
 
 	private void addAttributes(Model model) {
