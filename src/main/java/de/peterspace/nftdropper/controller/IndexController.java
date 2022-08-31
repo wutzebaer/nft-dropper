@@ -77,11 +77,24 @@ public class IndexController {
 		return "charly_holders";
 	}
 
-	@GetMapping("/nfts")
+	@GetMapping("/nfts-certificates")
+	public String nftsCertificates(Model model) {
+		addAttributes(model);
+		model.addAttribute("charlyTokenService", charlyTokenService);
+		return "charly_nfts_certificates";
+	}
+
+	@GetMapping("/nfts-hood")
+	public String nftsHood(Model model) {
+		addAttributes(model);
+		model.addAttribute("charlyTokenService", charlyTokenService);
+		return "charly_nfts_hood";
+	}
+	@GetMapping("/nfts-seven")
 	public String nfts(Model model) {
 		addAttributes(model);
 		model.addAttribute("charlyTokenService", charlyTokenService);
-		return "charly_nfts";
+		return "charly_nfts_seven";
 	}
 
 	private void addAttributes(Model model) {

@@ -15,27 +15,10 @@
 		<div class="content">
 			<div th:replace="charly_fragments :: header"></div>
 
-			<h1>Charlys Cnfts</h1>
 
-			<h2>NFT Policy ID</h2>
+			<h1>Collection of fairy tale seven</h1>
 			<div class="token-list">
 				<div class="token" th:each="token : ${charlyTokenService.getTokens('be3ee9322ec94d5446bfc1fdc582cb83a0f9bcbcec2ebd928d71175d')}">
-					<div th:text="${token.metadata?.getString('name')}"></div>
-					<img loading="lazy" th:if="${token.metadata?.getString('image')}" th:src="${'https://ipfs.cardano-tools.io/ipfs/' + charlyTokenService.right(token.metadata.getString('image'), 46)}"></img>
-				</div>
-			</div>
-
-			<h2>Charly hood collection</h2>
-			<div class="token-list">
-				<div class="token" th:each="token : ${charlyTokenService.getTokens('78125194aefda7242d61099cb700552a0126d2370de3c9105cb23362')}">
-					<div th:text="${token.metadata?.getString('name')}"></div>
-					<img loading="lazy" th:if="${token.metadata?.getString('image')}" th:src="${'https://ipfs.cardano-tools.io/ipfs/' + charlyTokenService.right(token.metadata.getString('image'), 46)}"></img>
-				</div>
-			</div>
-
-			<h2>Certificates of Charlys Kingdom</h2>
-			<div class="token-list">
-				<div class="token" th:each="token : ${charlyTokenService.getTokens('381cdcae25c7554340af1e50bef04763850c63c149a49e297bfa262b')}">
 					<div th:text="${token.metadata?.getString('name')}"></div>
 					<img loading="lazy" th:if="${token.metadata?.getString('image')}" th:src="${'https://ipfs.cardano-tools.io/ipfs/' + charlyTokenService.right(token.metadata.getString('image'), 46)}"></img>
 				</div>
