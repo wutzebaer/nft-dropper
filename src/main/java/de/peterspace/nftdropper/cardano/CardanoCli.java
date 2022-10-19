@@ -38,6 +38,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class CardanoCli {
 
+	private static final Long oneAda = 1_000_000l;
 	private static final Pattern lovelacePattern = Pattern.compile("Lovelace (\\d+)");
 	private static final String PAYMENT_VKEY_FILENAME = "payment.vkey";
 	private static final String PAYMENT_SKEY_FILENAME = "payment.skey";
@@ -112,8 +113,12 @@ public class CardanoCli {
 		cmd.add("--protocol-params-file");
 		cmd.add(prefixFilename(PROTOCOL_JSON_FILENAME));
 
+		if ("Babbage".equals(cardanoNode.getEra())) {
+			cmd.add("--babbage-era");
+		}
+
 		cmd.add("--tx-out");
-		cmd.add(addressValue);
+		cmd.add(addressValue + "+" + oneAda);
 
 		String feeString = ProcessUtil.runCommand(cmd.toArray(new String[0]));
 		long fee = Long.valueOf(feeString.split(" ")[1]);
