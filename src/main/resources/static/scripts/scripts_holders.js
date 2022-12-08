@@ -18,6 +18,8 @@ function updateHunt() {
 			$('#half-amount').text((Math.floor(max / 2 / 1000000 * 1) / 1) + 'm')
 			$('#full-amount').text((Math.ceil(max / 1000000 * 1) / 1) + 'm')
 
+			$('#total-holders-amount').text(result.length);
+
 			for (row of result) {
 
 				if ($('#' + row.group).length) {

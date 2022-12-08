@@ -161,6 +161,21 @@ a:hover {
 	word-wrap: break-word;
 }
 
+
+/* friends */
+#friends-line {
+	text-align: center;
+	word-wrap: break-word;
+}
+
+#friends-line img {
+	height: 90px;
+}
+
+#friends-line a {
+	text-decoration: none;
+}
+
 .modal-body {
 	word-wrap: break-word;
 }
@@ -364,4 +379,8 @@ a:hover {
 .token img {
 	width: 100%;
 	object-fit: scale-down;
+}
+
+
+.total-holders .number {
 }
