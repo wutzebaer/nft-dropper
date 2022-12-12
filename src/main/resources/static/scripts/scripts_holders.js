@@ -10,7 +10,7 @@ function updateHunt() {
 				$('#loading').show();
 			}
 
-			result = result.filter(e => e.quantity < 350000000);
+			result = result.filter(e => e.quantity < 1_000_000_000);
 			let max = Math.max.apply(Math, result.map(e => e.quantity));
 			let min = Math.min.apply(Math, result.map(e => e.quantity));
 

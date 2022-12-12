@@ -59,6 +59,13 @@ h2 {
 	text-align: left;
 }
 
+.partners {
+	font-family: uwch;
+	font-size: 35px;
+	text-align: left;
+	text-align: center;
+}
+
 /* BUTTONS */
 #button-line {
 	display: flex;

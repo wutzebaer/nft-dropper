@@ -1,6 +1,5 @@
 package de.peterspace.nftdropper.cardano;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -39,16 +38,17 @@ public class CardanoNode {
 	public void init() throws Exception {
 
 		// determine network
-		if (network.equals("testnet")) {
-			networkMagicArgs = new String[] { "--testnet-magic", "1097911063" };
-			donationAddress = "addr_test1vzm609cpns8n6cnlpdslp4wyeym7ke3422nrt76esjwggfcpmns48";
+		if (network.equals("preview")) {
+			networkMagicArgs = new String[] { "--testnet-magic", "2" };
+			donationAddress = "addr_test1qp8cprhse9pnnv7f4l3n6pj0afq2hjm6f7r2205dz0583ed6zj0zugmep9lxtuxq8unn85csx9g70ugq6dklmvq6pv3qa0n8cl";
 		} else if (network.equals("mainnet")) {
 			networkMagicArgs = new String[] { "--mainnet" };
-			donationAddress = "addr1qx6pnsm9n3lrvtwx24kq7a0mfwq2txum2tvtaevnpkn4mpyghzw2ukr33p5k45j42w62pqysdkf65p34mrvl4yu4n72s7yfgkq";
+			donationAddress = "addr1q9h7988xmmpz2y50rg2n9fw6jd5rq95t8q84k4q6ne403nxahea9slntm5n8f06nlsynyf4m6sa0qd05agra0qgk09nq96rqh9";
 		} else {
-			throw new RuntimeException("Network must be testnet or mainnet");
+			throw new RuntimeException("Network must be preview or mainnet");
 		}
 
+		
 		// ensure node is synced
 		while (true) {
 			try {

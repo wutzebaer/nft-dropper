@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
@@ -28,6 +29,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import com.google.common.base.Functions;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 
@@ -115,7 +117,7 @@ public class CharlySeller {
 		return countCharlyFunds(utxosWithCharlyTokens);
 	}
 
-	@Scheduled(cron = "*/1 * * * * *")
+	@Scheduled(cron = "*/10 * * * * *")
 	public void processOffers() throws Exception {
 
 		if (StringUtils.isBlank(charlyToken)) {
@@ -146,19 +148,26 @@ public class CharlySeller {
 					continue;
 				}
 
+				int amount = (int) (useableFunds / minFunds);
+				amount = Math.min(amount, 10);
+
 				// calcualte amount
-				final long randomAmount = getRandomAmount();
+				final List<Long> randomAmounts = new ArrayList<>();
+				for (long i = 0; i < amount; i++) {
+					randomAmounts.add(getRandomAmount());
+				}
+				long totalAmount = randomAmounts.stream().mapToLong(i -> i).sum();
 
 				// gather utxos with charly
 				List<TransactionInputs> reservedUtxosWithCharlyTokens = new ArrayList<>();
-				while (countCharlyFunds(reservedUtxosWithCharlyTokens) < randomAmount && !utxosWithCharlyTokens.isEmpty()) {
+				while (countCharlyFunds(reservedUtxosWithCharlyTokens) < totalAmount && !utxosWithCharlyTokens.isEmpty()) {
 					TransactionInputs reservedUtxo = utxosWithCharlyTokens.get(0);
 					List<TransactionInputs> reservedUtxos = utxosWithCharlyTokens.stream().filter(utxo -> utxo.getTxhash().equals(reservedUtxo.getTxhash()) && utxo.getTxix() == reservedUtxo.getTxix()).collect(Collectors.toList());
 					utxosWithCharlyTokens.removeAll(reservedUtxos);
 					reservedUtxosWithCharlyTokens.addAll(reservedUtxos);
 				}
 				long gatheredCharlies = countCharlyFunds(reservedUtxosWithCharlyTokens) + countCharlyFunds(utxosWithoutCharlyTokens);
-				if (gatheredCharlies < randomAmount) {
+				if (gatheredCharlies < totalAmount) {
 					log.info("Not enough charly left, please start next tier, blacklisting utxos {}", utxosWithoutCharlyTokens.get(0).getSourceAddress());
 					break;
 				}
@@ -166,7 +175,9 @@ public class CharlySeller {
 				TransactionOutputs transactionOutputs = new TransactionOutputs();
 
 				// buyer
-				transactionOutputs.add(buyerAddress, formatCurrency(charlyTokenPolicyId, charlyTokenAssetName), randomAmount);
+				for (int i = 0; i < amount; i++) {
+					transactionOutputs.add(buyerAddress + "#" + i, formatCurrency(charlyTokenPolicyId, charlyTokenAssetName), randomAmounts.get(i));
+				}
 
 				// return input tokens to seller
 				if (utxosWithoutCharlyTokens.stream().filter(e -> !e.getPolicyId().isEmpty()).map(f -> f.getPolicyId()).distinct().count() > 0) {
@@ -175,15 +186,17 @@ public class CharlySeller {
 					});
 				}
 
-				// min output for tokens
-				transactionOutputs.add(buyerAddress, "", cardanoCli.calculateMinUtxo(transactionOutputs.toCliFormat(buyerAddress)));
+				// min output
+				for (String address : transactionOutputs.getOutputs().keySet()) {
+					transactionOutputs.add(address, "", cardanoCli.calculateMinUtxo(transactionOutputs.toCliFormat(address)));
+				}
 
 				// return change to buyer
-				long change = useableFunds - minFunds;
+				long change = useableFunds - (minFunds * amount);
 				transactionOutputs.add(buyerAddress, "", change);
 
 				// charly bowl
-				long charlyLeft = gatheredCharlies - randomAmount;
+				long charlyLeft = gatheredCharlies - totalAmount;
 				long usedCharlyInputCount = countCharlyInputs(reservedUtxosWithCharlyTokens);
 				for (int i = 0; i < usedCharlyInputCount; i++) {
 					transactionOutputs.add(paymentAddress.getAddress() + "#" + i, formatCurrency(charlyTokenPolicyId, charlyTokenAssetName), charlyLeft / usedCharlyInputCount);
@@ -203,7 +216,7 @@ public class CharlySeller {
 					blacklistCharly.put(charlyInput.getTxhash() + "#" + charlyInput.getTxix(), true);
 				}
 
-				log.info("Successfully sold {} , txid: {}", randomAmount, txId);
+				log.info("Successfully sold {} , txid: {}", randomAmounts, txId);
 
 			} catch (Exception e) {
 				log.error("TransactionInputs failed to process", e);
