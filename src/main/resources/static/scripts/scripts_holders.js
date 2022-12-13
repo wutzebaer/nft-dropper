@@ -10,7 +10,22 @@ function updateHunt() {
 				$('#loading').show();
 			}
 
-			result = result.filter(e => e.quantity < 1_000_000_000);
+			var blacklist = [
+				'stake1u94vpc75fv6mq4vcupew454mf97wygg54shprlnwy8f5r5spul7ju',
+				'addr1v9gs0trlcmyty7jakcewjs3h00a7xrzyd5wnyfrpeg4wjts0ugx63',
+				'stake1u8wmu7jc0e4a6fn5haflczfjy6aagwhsxh6w5p7hsyt8jeshhy0rn',
+				'stake1uyvy8zt0k5qc06xp0mkjg3jvuttm4knyrussfhz4xfetu7g2h4gr9',
+				'stake1uxv79q8x372qlgaw3e7wnl0x0nvke46ws9fpwfhzkn8g58cev8y9t',
+				'stake1u82kr0vgaapv07cnhr42hjacyj2h56qje2eqk3pwyzngf4q78j44e',
+				'stake1ux7m0jrvdegy4c4t8c63a2ya4vpgwt0wjp8fud2z93hpgkq902u9l',
+				'addr1vx4k40tqxn9lxm5yjpfx62hq8h8pfmwnexfyqlegmavhsmgxygm82',
+				'addr1v9y8fc3qhqj4tcxe2uy4u4285euz9v5r7ylxwgk2xnuucpswdsnrs',
+				'stake1uxfghh5csenhvlegfnff6x5uvcxhanksv26mqcv9mxundlgc8hjrj',
+				'stake1u89tnj258vkk4p9fnd226e7lulh3xh58mvl66uzarzgkrxq7xz24l',
+				'stake1uy6k2a43zes2f652drqse959ta2k8lze4c9d9h9ph4cs48szzl0sr'
+			];
+
+			result = result.filter(e => blacklist.indexOf(e.group) === -1);
 			let max = Math.max.apply(Math, result.map(e => e.quantity));
 			let min = Math.min.apply(Math, result.map(e => e.quantity));
 
