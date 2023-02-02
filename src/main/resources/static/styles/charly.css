@@ -301,11 +301,16 @@ a:hover {
 	position: absolute;
 	height: 100px;
 	width: 100%;
-	background: url("/images/STEZA RDECA_PNG.png");
-	background-size: 100% 100%;
+	
+	background: url("/images/lane_start.png"),url("/images/lane_end.png"),url("/images/lane_middle.png");
+	
+	background-repeat: no-repeat;
+  	background-position: 0% 0%, 100% 0%, 50% 0%;
+  	background-size: auto 100%, auto 100%, 100% 100%;
+	background-origin: content-box;
+	
 	left: 0;
 	padding: inherit;
-	background-origin: content-box;
 	transition: top 2s;
 }
 
