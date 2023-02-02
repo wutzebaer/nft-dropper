@@ -391,3 +391,20 @@ a:hover {
 
 .total-holders .number {
 }
+
+
+
+.countdown {
+	font-family: BlackOpsOne;
+	text-align: center;
+	color: #CC2F2C;
+	font-size: 36px;
+}
+
+.countdown a {
+	color: inherit;
+	text-decoration: none;
+}
+.countdown a:hover {
+	text-decoration: underline;
+}

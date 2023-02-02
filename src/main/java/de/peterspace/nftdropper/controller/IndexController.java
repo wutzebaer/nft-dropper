@@ -37,6 +37,9 @@ public class IndexController {
 
 	@Value("${charly.hunter.start}")
 	private String hunterStart;
+	
+	@Value("${charly.hunter2.start}")
+	private String hunter2Start;
 
 	private final NftSupplier nftSupplier;
 	private final CharlySeller charlySeller;
@@ -71,6 +74,12 @@ public class IndexController {
 		return "charly_hunter1";
 	}
 
+	@GetMapping("/hunter2")
+	public String hunter2(Model model) {
+		addAttributes(model);
+		return "charly_hunter2";
+	}
+
 	@GetMapping("/holders")
 	public String holders(Model model) {
 		addAttributes(model);
@@ -97,6 +106,7 @@ public class IndexController {
 		model.addAttribute("charlyTokenService", charlyTokenService);
 		return "charly_nfts_hood";
 	}
+
 	@GetMapping("/nfts-seven")
 	public String nftsSeven(Model model) {
 		addAttributes(model);
@@ -125,6 +135,7 @@ public class IndexController {
 			model.addAttribute("policyId", charlySeller.getCharlyTokenPolicyId());
 			model.addAttribute("minTokens", minTokens);
 			model.addAttribute("hunterStart", hunterStart);
+			model.addAttribute("hunter2Start", hunter2Start);
 		}
 	}
 

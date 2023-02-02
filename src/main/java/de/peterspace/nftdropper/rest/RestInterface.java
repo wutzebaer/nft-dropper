@@ -32,12 +32,14 @@ import org.springframework.web.bind.annotation.RestController;
 import de.peterspace.nftdropper.cardano.CardanoCli;
 import de.peterspace.nftdropper.cardano.CardanoDbSyncClient;
 import de.peterspace.nftdropper.cardano.CardanoDbSyncClient.MintedToken;
+import de.peterspace.nftdropper.component.CharlyHunter2Service;
 import de.peterspace.nftdropper.component.CharlyHunterService;
 import de.peterspace.nftdropper.component.NftMinter;
 import de.peterspace.nftdropper.component.NftSupplier;
 import de.peterspace.nftdropper.component.ShopItemService;
 import de.peterspace.nftdropper.component.ShopItemService.ShopItem;
 import de.peterspace.nftdropper.model.Address;
+import de.peterspace.nftdropper.model.Hunter2SnapshotRow;
 import de.peterspace.nftdropper.model.HunterSnapshotRow;
 import de.peterspace.nftdropper.repository.AddressRepository;
 import lombok.RequiredArgsConstructor;
@@ -63,6 +65,7 @@ public class RestInterface {
 	private final ShopItemService shopItemService;
 	private final CardanoDbSyncClient cardanoDbSyncClient;
 	private final CharlyHunterService charlyHunterService;
+	private final CharlyHunter2Service charlyHunter2Service;
 
 	@GetMapping("address")
 	public String getAddress() {
@@ -157,7 +160,9 @@ public class RestInterface {
 		return charlyHunterService.getChainSnapshot();
 	}
 
-
-
+	@GetMapping("currentHunter2Values")
+	public List<Hunter2SnapshotRow> getCurrentHunter2Values() {
+		return charlyHunter2Service.getCurrentToplist();
+	}
 
 }

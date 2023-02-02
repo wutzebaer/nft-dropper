@@ -1,4 +1,4 @@
-FROM adoptopenjdk/openjdk11:x86_64-ubuntu-jre-11.0.15_10
+FROM eclipse-temurin:17-jre-focal
 RUN apt-get update && apt-get install -y \
   docker.io \
   && rm -rf /var/lib/apt/lists/*

@@ -6,7 +6,10 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -29,10 +32,9 @@ import com.zaxxer.hikari.HikariDataSource;
 
 import de.peterspace.nftdropper.TrackExecutionTime;
 import de.peterspace.nftdropper.model.FullTokenData;
+import de.peterspace.nftdropper.model.Hunter2SnapshotRow;
 import de.peterspace.nftdropper.model.HunterSnapshotRow;
-import de.peterspace.nftdropper.model.TokenData;
 import de.peterspace.nftdropper.model.TransactionInputs;
-import de.peterspace.nftdropper.util.CardanoUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -64,6 +66,43 @@ public class CardanoDbSyncClient {
 			+ "left join multi_asset ma_handle on ma_handle.id=mto_handle.ident and ma_handle.\"policy\"= decode('f0ff48bbb7bbe9d59a40f1ce90e9e9d0ff5002ec48f232b49ca0fb9a', 'hex')\r\n"
 			+ "group by owners.\"group\"\r\n"
 			+ "order by quantity desc";
+
+	private byte[] handlePolicyBytes;
+	private static final String hunterSeason2 = """
+			select
+				stake_address,
+				count(*),
+				(select ma.name handle
+					from utxo_view uv
+					join tx_out to2 on to2.tx_id=uv.tx_id and to2."index"=uv."index"
+					join ma_tx_out mto on mto.tx_out_id=to2.id
+					join multi_asset ma on ma.id=mto.ident and ma."policy"=?
+					where uv.stake_address_id=min(outputs.stake_address_id)
+					limit 1)
+			from (
+				select distinct
+					from_txo.address,
+					tx.id tx_id,
+					encode(tx.hash, 'hex') tx_hash,
+					to_txo."index",
+					to_txo.value,
+					to_txo.address,
+					sa."view" stake_address,
+					sa.id stake_address_id
+				from tx_out from_txo
+				join tx_in ti on from_txo.tx_id = ti.tx_out_id AND from_txo.index = ti.tx_out_index
+				join tx tx on tx.id = ti.tx_in_id
+				join tx_out to_txo on to_txo.tx_id = tx.id
+				join stake_address sa on sa.id=to_txo.stake_address_id
+				join block b on b.id=tx.block_id
+				where from_txo.address = 'addr1v9gs0trlcmyty7jakcewjs3h00a7xrzyd5wnyfrpeg4wjts0ugx63'
+				and to_txo.address not in ('addr1v9gs0trlcmyty7jakcewjs3h00a7xrzyd5wnyfrpeg4wjts0ugx63', 'addr1q8yv5fqyx76s3jtrw96qgz9ply32hq84690dq6psdfazrmn2cr3agje4kp2e3crjatftkjtuugs3ftpwz8lxugwng8fq9wl02y')
+				and b."time">?
+				order by tx.id desc, to_txo."index"
+			) outputs
+			group by stake_address
+			order by count(*) desc
+			""";
 
 	private static final String tokenQuery = "select\r\n"
 			+ "encode(ma.policy::bytea, 'hex') policyId,\r\n"
@@ -154,18 +193,19 @@ public class CardanoDbSyncClient {
 			+ "sa.\"view\" = ANY (?)";
 
 	@Value("${cardano-db-sync.url}")
-	String url;
+	private String url;
 
 	@Value("${cardano-db-sync.username}")
-	String username;
+	private String username;
 
 	@Value("${cardano-db-sync.password}")
-	String password;
+	private String password;
 
 	private HikariDataSource hds;
 
 	@PostConstruct
-	public void init() throws SQLException {
+	public void init() throws SQLException, DecoderException {
+		handlePolicyBytes = Hex.decodeHex("f0ff48bbb7bbe9d59a40f1ce90e9e9d0ff5002ec48f232b49ca0fb9a");
 		hds = new HikariDataSource();
 		hds.setInitializationFailTimeout(60000l);
 		hds.setJdbcUrl(url);
@@ -241,6 +281,30 @@ public class CardanoDbSyncClient {
 				hunterSnapshotRow.setAddress(resultSet.getString(2));
 				hunterSnapshotRow.setHandle(resultSet.getString(3));
 				hunterSnapshotRow.setQuantity(resultSet.getLong(4));
+				rows.add(hunterSnapshotRow);
+			}
+
+			return rows;
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	public List<Hunter2SnapshotRow> createHunter2Snapshot(Instant start) {
+		try (Connection connection = hds.getConnection()) {
+			PreparedStatement hunterSnapshotStatement = connection.prepareStatement(hunterSeason2);
+			hunterSnapshotStatement.setBytes(1, handlePolicyBytes);
+			hunterSnapshotStatement.setTimestamp(2, Timestamp.from(start));
+
+			ResultSet resultSet = hunterSnapshotStatement.executeQuery();
+
+			List<Hunter2SnapshotRow> rows = new ArrayList<>();
+
+			while (resultSet.next()) {
+				Hunter2SnapshotRow hunterSnapshotRow = new Hunter2SnapshotRow();
+				hunterSnapshotRow.setStakeAddress(resultSet.getString("stake_address"));
+				hunterSnapshotRow.setCount(resultSet.getLong("count"));
+				hunterSnapshotRow.setHandle(new String(resultSet.getBytes("handle"), StandardCharsets.UTF_8));
 				rows.add(hunterSnapshotRow);
 			}
 

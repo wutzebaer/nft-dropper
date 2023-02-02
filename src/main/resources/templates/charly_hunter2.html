@@ -1,0 +1,86 @@
+<!DOCTYPE HTML>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+<title>Cavalier King Charles - Charly</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+<link th:href="@{/styles/charly.css}" rel="stylesheet" />
+<link th:href="@{/styles/rainbow.css}" rel="stylesheet" />
+<link rel="icon" type="image/png" th:href="@{/images/King Charles_logo_small.png}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.1/font/bootstrap-icons.css">
+</head>
+<body>
+
+	<h1>Charly Hunter Season 2</h1>
+
+<!-- 
+	<p id="hunter-logo-line">
+		<img th:src="@{/images/hunter.png}">
+	</p>
+ -->
+
+	<p class="countdown">
+		Charly hunt season 2 starts in
+		<span th:data-countdown="${hunter2Start}"></span>
+	</p>
+
+	<div id="bowl-content">
+		<div class="hunter-field-boundary">
+			<div class="hunter-field">
+				<div class="hunter-lane-header">
+					<span>0</span>
+					<span id="half-amount" th:text="500"></span>
+					<span id="max-amount" th:text="1000"></span>
+				</div>
+				<img id="loading" width="100" height="100" th:src="@{/images/loading-buffering.gif}" />
+			</div>
+		</div>
+	</div>
+
+
+	<p id="policy-line">
+		Token Policy ID <br>
+		<span th:text="${policyId}"></span>
+		<br> NFT Policy ID<br>
+		<a href="https://www.jpg.store/collection/be3ee9322ec94d5446bfc1fdc582cb83a0f9bcbcec2ebd928d71175d" target="_blank">be3ee9322ec94d5446bfc1fdc582cb83a0f9bcbcec2ebd928d71175d</a>
+		<br> Charly hood collection<br>
+		<a href="https://www.jpg.store/collection/78125194aefda7242d61099cb700552a0126d2370de3c9105cb23362" target="_blank">78125194aefda7242d61099cb700552a0126d2370de3c9105cb23362</a>
+	</p>
+
+
+
+	<p id="social-line">
+		<a style="color: #5865F2" target="_blank" href="https://discord.gg/ArH9udyKTN">
+			<i class="bi bi-discord"></i>
+		</a>
+		<a style="color: #1DA1F2" target="_blank" href="https://twitter.com/Charlytoken7">
+			<i class="bi bi-twitter"></i>
+		</a>
+		<a style="color: #2AABEE" target="_blank" href="https://t.me/charlytoken7">
+			<i class="bi bi-telegram"></i>
+		</a>
+	</p>
+
+	<p id="powered-line">
+		POWERED BY
+		<a target="_blank" href="https://cardano-tools.io">
+			<img th:src="@{/images/logo_small_ct.png}">
+		</a>
+	</p>
+
+
+
+	<script th:inline="javascript">
+		/*<![CDATA[*/
+		var tokenPrice = /*[[${tokenPrice}]]*/0;
+		var minTokens = /*[[${minTokens}]]*/0;
+		/*]]>*/
+	</script>
+	<script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.0/clipboard.min.js"></script>
+	<script th:src="@{/scripts/scripts_charly.js}"></script>
+	<script th:src="@{/scripts/scripts_hunter2.js}"></script>
+</body>
+</html>
