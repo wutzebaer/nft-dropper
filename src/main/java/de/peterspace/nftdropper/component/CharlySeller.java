@@ -1,26 +1,27 @@
 package de.peterspace.nftdropper.component;
 
+import static java.util.Map.entry;
+
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.SecureRandom;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 
 import org.apache.commons.codec.binary.Hex;
-import org.apache.commons.collections.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -29,15 +30,16 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import com.google.common.base.Functions;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 
 import de.peterspace.nftdropper.cardano.CardanoCli;
 import de.peterspace.nftdropper.cardano.CardanoDbSyncClient;
 import de.peterspace.nftdropper.model.Address;
+import de.peterspace.nftdropper.model.CharlyJackpotCounter;
 import de.peterspace.nftdropper.model.TransactionInputs;
 import de.peterspace.nftdropper.model.TransactionOutputs;
+import de.peterspace.nftdropper.repository.CharlyJackpotCounterRepository;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -46,6 +48,33 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @RequiredArgsConstructor
 public class CharlySeller {
+
+	@lombok.Value
+	public static class JackpotCoin {
+		String assetName;
+		Long charlyTokens;
+	}
+
+	private Map<Integer, JackpotCoin> jackpot = Map.ofEntries(
+			entry(57, new JackpotCoin("CopperJackpotCoin007", 25000000l)),
+			entry(114, new JackpotCoin("CopperJackpotCoin008", 25000000l)),
+			entry(171, new JackpotCoin("CopperJackpotCoin009", 25000000l)),
+			entry(228, new JackpotCoin("CopperJackpotCoin010", 25000000l)),
+			entry(285, new JackpotCoin("CopperJackpotCoin011", 25000000l)),
+			entry(342, new JackpotCoin("SilverJackpotCoin002", 50000000l)),
+			entry(399, new JackpotCoin("SilverJackpotCoin003", 50000000l)),
+			entry(456, new JackpotCoin("CopperJackpotCoin012", 25000000l)),
+			entry(513, new JackpotCoin("CopperJackpotCoin013", 25000000l)),
+			entry(570, new JackpotCoin("SilverJackpotCoin004", 50000000l)),
+			entry(627, new JackpotCoin("CopperJackpotCoin014", 25000000l)),
+			entry(684, new JackpotCoin("CopperJackpotCoin015", 25000000l)),
+			entry(741, new JackpotCoin("SilverJackpotCoin005", 50000000l)),
+			entry(798, new JackpotCoin("GoldJackpotCoin001", 100000000l)),
+			entry(855, new JackpotCoin("CopperJackpotCoin016", 25000000l)),
+			entry(912, new JackpotCoin("SilverJackpotCoin006", 50000000l)),
+			entry(969, new JackpotCoin("CopperJackpotCoin017", 25000000l))
+
+	);
 
 	private final SecureRandom sr = new SecureRandom();
 
@@ -65,9 +94,16 @@ public class CharlySeller {
 	@Value("${token.dir}")
 	private String tokenDir;
 
+	@Value("${charly.jackpot.policy}")
+	private String jackpotPolicy;
+
 	// Injects
 	private final CardanoCli cardanoCli;
 	private final CardanoDbSyncClient cardanoDbSyncClient;
+	private final CharlyJackpotCounterRepository charlyJackpotCounterRepository;
+	private final CharlyHunter2Service charlyHunter2Service;
+
+	private CharlyJackpotCounter charlyJackpotCounter;
 
 	@Getter
 	private List<CharlyTier> charlyTiers = new ArrayList<>();
@@ -91,6 +127,8 @@ public class CharlySeller {
 		if (StringUtils.isBlank(charlyToken)) {
 			return;
 		}
+
+		charlyJackpotCounter = charlyJackpotCounterRepository.findById(1l).orElse(new CharlyJackpotCounter());
 
 		charlyTokenPolicyId = charlyToken.split("\\.")[0];
 		charlyTokenAssetName = charlyToken.split("\\.")[1];
@@ -125,22 +163,22 @@ public class CharlySeller {
 		}
 
 		List<TransactionInputs> offerFundings = cardanoDbSyncClient.getOfferFundings(paymentAddress.getAddress());
-		List<TransactionInputs> utxosWithCharlyTokens = getCharlyInputs(offerFundings);
-		Map<Long, List<TransactionInputs>> utxosWithoutCharlyTokensGroupedByStakingAddress = getNonCharlyInputsGroupedByStakingAddress(offerFundings);
+		List<TransactionInputs> charlyUtxos = getCharlyInputs(offerFundings);
+		Map<Long, List<TransactionInputs>> buyerUtxosGroupedByStakingAddress = getPaymentInputs(offerFundings);
 
 		// use utxos equally
 		Collections.shuffle(offerFundings);
-		Collections.shuffle(utxosWithCharlyTokens);
+		Collections.shuffle(charlyUtxos);
 
 		final long minFunds = tokenPrice * 1_000_000;
 
-		for (List<TransactionInputs> utxosWithoutCharlyTokens : utxosWithoutCharlyTokensGroupedByStakingAddress.values()) {
+		for (List<TransactionInputs> buyerUtxos : buyerUtxosGroupedByStakingAddress.values()) {
 
 			try {
-				final String buyerAddress = utxosWithoutCharlyTokens.get(0).getSourceAddress();
+				final String buyerAddress = buyerUtxos.get(0).getSourceAddress();
 
-				long lockedFunds = calculateLockedFunds(utxosWithoutCharlyTokens);
-				long totalFunds = calculateAvailableFunds(utxosWithoutCharlyTokens);
+				long lockedFunds = calculateLockedFunds(buyerUtxos);
+				long totalFunds = calculateAvailableFunds(buyerUtxos);
 				long useableFunds = totalFunds - lockedFunds;
 
 				// check balance
@@ -158,32 +196,81 @@ public class CharlySeller {
 				}
 				long totalAmount = randomAmounts.stream().mapToLong(i -> i).sum();
 
-				// gather utxos with charly
-				List<TransactionInputs> reservedUtxosWithCharlyTokens = new ArrayList<>();
-				while (countCharlyFunds(reservedUtxosWithCharlyTokens) < totalAmount && !utxosWithCharlyTokens.isEmpty()) {
-					TransactionInputs reservedUtxo = utxosWithCharlyTokens.get(0);
-					List<TransactionInputs> reservedUtxos = utxosWithCharlyTokens.stream().filter(utxo -> utxo.getTxhash().equals(reservedUtxo.getTxhash()) && utxo.getTxix() == reservedUtxo.getTxix()).collect(Collectors.toList());
-					utxosWithCharlyTokens.removeAll(reservedUtxos);
-					reservedUtxosWithCharlyTokens.addAll(reservedUtxos);
-				}
-				long gatheredCharlies = countCharlyFunds(reservedUtxosWithCharlyTokens) + countCharlyFunds(utxosWithoutCharlyTokens);
-				if (gatheredCharlies < totalAmount) {
-					log.info("Not enough charly left, please start next tier, blacklisting utxos {}", utxosWithoutCharlyTokens.get(0).getSourceAddress());
-					break;
-				}
+				List<TransactionInputs> allUsedInputs = new ArrayList<>();
+				allUsedInputs.addAll(buyerUtxos);
 
 				TransactionOutputs transactionOutputs = new TransactionOutputs();
+
+				// check if JACKPOT input is needed
+				if (Instant.now().isAfter(charlyHunter2Service.getHunterStartTimestamp())) {
+					for (int i = 0; i < amount; i++) {
+						Integer currentTxNum = charlyJackpotCounter.getCount() + 1;
+						log.info("Jackpot num: " + currentTxNum);
+						JackpotCoin jackpotCoin = jackpot.get(currentTxNum);
+						if (jackpotCoin != null) {
+							log.info("HIT JACKPOT: " + jackpotCoin);
+							// use inputs
+							List<TransactionInputs> jackpotInputs = getJackpotInputs(offerFundings);
+							allUsedInputs.addAll(jackpotInputs);
+
+							// send nft and jackpot charlies
+							transactionOutputs.add(buyerAddress + "#jackpot", formatCurrency(charlyTokenPolicyId, charlyTokenAssetName), jackpotCoin.getCharlyTokens());
+							transactionOutputs.add(buyerAddress + "#jackpot", formatCurrency(jackpotPolicy, jackpotCoin.getAssetName()), 1);
+
+							// increae amount to gaster
+							totalAmount += jackpotCoin.getCharlyTokens();
+
+							// return other nfts
+							jackpotInputs.removeIf(in -> Objects.equals(in.getAssetName(), jackpotCoin.getAssetName()));
+							jackpotInputs.removeIf(in -> StringUtils.isBlank(in.getPolicyId()));
+							for (TransactionInputs jackpotCoinInput : jackpotInputs) {
+								transactionOutputs.add(paymentAddress.getAddress() + "#jackpot", formatCurrency(jackpotCoinInput.getPolicyId(), jackpotCoinInput.getAssetName()), jackpotCoinInput.getValue());
+								blacklistCharly.put(jackpotCoinInput.getTxhash() + "#" + jackpotCoinInput.getTxix(), true);
+							}
+						}
+						charlyJackpotCounter.setCount(currentTxNum);
+						//charlyJackpotCounterRepository.save(charlyJackpotCounter);
+					}
+				}
+
+				// gather charlyToken inputs
+				List<TransactionInputs> reservedCharlyUtxos = new ArrayList<>();
+				while (countCharlyFunds(reservedCharlyUtxos) < totalAmount && !charlyUtxos.isEmpty()) {
+					TransactionInputs reservedUtxo = charlyUtxos.get(0);
+					List<TransactionInputs> reservedUtxos = charlyUtxos.stream().filter(utxo -> utxo.getTxhash().equals(reservedUtxo.getTxhash()) && utxo.getTxix() == reservedUtxo.getTxix()).collect(Collectors.toList());
+					charlyUtxos.removeAll(reservedUtxos);
+					reservedCharlyUtxos.addAll(reservedUtxos);
+				}
+				long gatheredCharlies = countCharlyFunds(reservedCharlyUtxos) + countCharlyFunds(buyerUtxos);
+				if (gatheredCharlies < totalAmount) {
+					log.info("Not enough charly left, please start next tier, blacklisting utxos {}", buyerUtxos.get(0).getSourceAddress());
+					break;
+				}
+				allUsedInputs.addAll(reservedCharlyUtxos);
 
 				// buyer
 				for (int i = 0; i < amount; i++) {
 					transactionOutputs.add(buyerAddress + "#" + i, formatCurrency(charlyTokenPolicyId, charlyTokenAssetName), randomAmounts.get(i));
 				}
+				// return change to buyer
+				long change = useableFunds - (minFunds * amount);
+				transactionOutputs.add(buyerAddress, "", change);
+				// when the buyer sent tokens for some reason, end them back
+				List<TransactionInputs> buyersSentTokens = buyerUtxos.stream().filter(e -> !e.getPolicyId().isEmpty()).collect(Collectors.toList());
+				if (!buyersSentTokens.isEmpty()) {
+					for (TransactionInputs buyerSentToken : buyersSentTokens) {
+						transactionOutputs.add(buyerAddress, formatCurrency(buyerSentToken.getPolicyId(), buyerSentToken.getAssetName()), buyerSentToken.getValue());
+					}
+				}
 
-				// return input tokens to seller
-				if (utxosWithoutCharlyTokens.stream().filter(e -> !e.getPolicyId().isEmpty()).map(f -> f.getPolicyId()).distinct().count() > 0) {
-					utxosWithoutCharlyTokens.stream().filter(e -> !e.getPolicyId().isEmpty()).forEach(i -> {
-						transactionOutputs.add(buyerAddress, formatCurrency(i.getPolicyId(), i.getAssetName()), i.getValue());
-					});
+				// distribute remaining charlies to the same amount of utxos
+				long charlyLeft = gatheredCharlies - totalAmount;
+				long usedCharlyInputCount = countCharlyInputs(reservedCharlyUtxos);
+				for (int i = 0; i < usedCharlyInputCount; i++) {
+					transactionOutputs.add(paymentAddress.getAddress() + "#" + i, formatCurrency(charlyTokenPolicyId, charlyTokenAssetName), charlyLeft / usedCharlyInputCount);
+				}
+				if (charlyLeft % usedCharlyInputCount != 0) {
+					transactionOutputs.add(paymentAddress.getAddress() + "#0", formatCurrency(charlyTokenPolicyId, charlyTokenAssetName), charlyLeft % usedCharlyInputCount);
 				}
 
 				// min output
@@ -191,29 +278,10 @@ public class CharlySeller {
 					transactionOutputs.add(address, "", cardanoCli.calculateMinUtxo(transactionOutputs.toCliFormat(address)));
 				}
 
-				// return change to buyer
-				long change = useableFunds - (minFunds * amount);
-				transactionOutputs.add(buyerAddress, "", change);
-
-				// charly bowl
-				long charlyLeft = gatheredCharlies - totalAmount;
-				long usedCharlyInputCount = countCharlyInputs(reservedUtxosWithCharlyTokens);
-				for (int i = 0; i < usedCharlyInputCount; i++) {
-					transactionOutputs.add(paymentAddress.getAddress() + "#" + i, formatCurrency(charlyTokenPolicyId, charlyTokenAssetName), charlyLeft / usedCharlyInputCount);
-					transactionOutputs.add(paymentAddress.getAddress() + "#" + i, "", cardanoCli.calculateMinUtxo(transactionOutputs.toCliFormat(paymentAddress.getAddress() + "#" + i)));
-				}
-
-				if (charlyLeft % usedCharlyInputCount != 0) {
-					transactionOutputs.add(paymentAddress.getAddress() + "#0", formatCurrency(charlyTokenPolicyId, charlyTokenAssetName), charlyLeft % usedCharlyInputCount);
-					transactionOutputs.getOutputs().get(paymentAddress.getAddress() + "#0").remove("");
-					transactionOutputs.add(paymentAddress.getAddress() + "#0", "", cardanoCli.calculateMinUtxo(transactionOutputs.toCliFormat(paymentAddress.getAddress() + "#0")));
-				}
-
-				List allUsedInputs = ListUtils.union(utxosWithoutCharlyTokens, reservedUtxosWithCharlyTokens);
 				String txId = cardanoCli.mint(allUsedInputs, transactionOutputs, null, paymentAddress, null, sellerAddress);
 
-				for (TransactionInputs charlyInput : reservedUtxosWithCharlyTokens) {
-					blacklistCharly.put(charlyInput.getTxhash() + "#" + charlyInput.getTxix(), true);
+				for (TransactionInputs usedInput : allUsedInputs) {
+					blacklistCharly.put(usedInput.getTxhash() + "#" + usedInput.getTxix(), true);
 				}
 
 				log.info("Successfully sold {} , txid: {}", randomAmounts, txId);
@@ -221,7 +289,7 @@ public class CharlySeller {
 			} catch (Exception e) {
 				log.error("TransactionInputs failed to process", e);
 			} finally {
-				blacklist.put(utxosWithoutCharlyTokens.get(0).getStakeAddressId(), true);
+				blacklist.put(buyerUtxos.get(0).getStakeAddressId(), true);
 			}
 
 		}
@@ -274,22 +342,24 @@ public class CharlySeller {
 		return offerFundings
 				.stream()
 				.filter(of -> blacklistCharly.getIfPresent(of.getTxhash() + "#" + of.getTxix()) == null)
-				// wir wollten nicht nur die charlies sondern auch die zugehörigen adas finden
-				.filter(of -> offerFundings.stream().anyMatch(
-						check -> (check.getPolicyId() + "." + check.getAssetName()).equals(charlyToken)
-								&& check.getTxhash().equals(of.getTxhash())
-								&& check.getTxix() == of.getTxix()))
+				.filter(isCharlyInput(offerFundings))
 				.collect(Collectors.toList());
 	}
 
-	private Map<Long, List<TransactionInputs>> getNonCharlyInputsGroupedByStakingAddress(List<TransactionInputs> offerFundings) {
+	private List<TransactionInputs> getJackpotInputs(List<TransactionInputs> offerFundings) {
+		return offerFundings
+				.stream()
+				.filter(of -> blacklistCharly.getIfPresent(of.getTxhash() + "#" + of.getTxix()) == null)
+				.filter(isJackpotInput(offerFundings))
+				.collect(Collectors.toList());
+	}
+
+	private Map<Long, List<TransactionInputs>> getPaymentInputs(List<TransactionInputs> offerFundings) {
 		return offerFundings
 				.stream()
 				.filter(of -> blacklist.getIfPresent(of.getStakeAddressId()) == null)
-				.filter(of -> !offerFundings.stream().anyMatch(
-						check -> (check.getPolicyId() + "." + check.getAssetName()).equals(charlyToken)
-								&& check.getTxhash().equals(of.getTxhash())
-								&& check.getTxix() == of.getTxix()))
+				.filter(isCharlyInput(offerFundings).negate())
+				.filter(isJackpotInput(offerFundings).negate())
 				.collect(Collectors.groupingBy(of -> of.getStakeAddressId(), LinkedHashMap::new, Collectors.toList()));
 	}
 
@@ -299,6 +369,20 @@ public class CharlySeller {
 		} else {
 			return policyId + "." + Hex.encodeHexString(assetName.getBytes(StandardCharsets.UTF_8));
 		}
+	}
+
+	private Predicate<? super TransactionInputs> isCharlyInput(List<TransactionInputs> offerFundings) {
+		return of -> offerFundings.stream().anyMatch(
+				check -> (check.getPolicyId() + "." + check.getAssetName()).equals(charlyToken)
+						&& check.getTxhash().equals(of.getTxhash())
+						&& check.getTxix() == of.getTxix());
+	}
+
+	private Predicate<? super TransactionInputs> isJackpotInput(List<TransactionInputs> offerFundings) {
+		return of -> offerFundings.stream().anyMatch(
+				check -> (check.getPolicyId()).equals(jackpotPolicy)
+						&& check.getTxhash().equals(of.getTxhash())
+						&& check.getTxix() == of.getTxix());
 	}
 
 }

@@ -27,7 +27,12 @@ public class CharlyHunter2Service {
 
 	@Value("${charly.hunter2.start}")
 	private String hunterStartString;
+	@Getter
 	private Instant hunterStartTimestamp;
+
+	@Value("${charly.hunter2.end}")
+	private String hunterEndString;
+	private Instant hunterEndTimestamp;
 
 	private final CardanoDbSyncClient cardanoDbSyncClient;
 
@@ -40,6 +45,7 @@ public class CharlyHunter2Service {
 			return;
 		}
 		hunterStartTimestamp = new SimpleDateFormat("yyyy-MM-dd HH:mmz").parse(hunterStartString + "UTC").toInstant();
+		hunterEndTimestamp = new SimpleDateFormat("yyyy-MM-dd HH:mmz").parse(hunterEndString + "UTC").toInstant();
 	}
 
 	@Scheduled(fixedRate = 1_000 * 60, initialDelay = 0)
@@ -49,7 +55,7 @@ public class CharlyHunter2Service {
 			return;
 		}
 
-		currentToplist = cardanoDbSyncClient.createHunter2Snapshot(hunterStartTimestamp);
+		currentToplist = cardanoDbSyncClient.createHunter2Snapshot(hunterStartTimestamp, hunterEndTimestamp);
 		System.out.println(currentToplist);
 	}
 

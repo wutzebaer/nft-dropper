@@ -98,6 +98,7 @@ public class CardanoDbSyncClient {
 				where from_txo.address = 'addr1v9gs0trlcmyty7jakcewjs3h00a7xrzyd5wnyfrpeg4wjts0ugx63'
 				and to_txo.address not in ('addr1v9gs0trlcmyty7jakcewjs3h00a7xrzyd5wnyfrpeg4wjts0ugx63', 'addr1q8yv5fqyx76s3jtrw96qgz9ply32hq84690dq6psdfazrmn2cr3agje4kp2e3crjatftkjtuugs3ftpwz8lxugwng8fq9wl02y')
 				and b."time">?
+				and b."time"<?
 				order by tx.id desc, to_txo."index"
 			) outputs
 			group by stake_address
@@ -290,11 +291,12 @@ public class CardanoDbSyncClient {
 		}
 	}
 
-	public List<Hunter2SnapshotRow> createHunter2Snapshot(Instant start) {
+	public List<Hunter2SnapshotRow> createHunter2Snapshot(Instant start, Instant end) {
 		try (Connection connection = hds.getConnection()) {
 			PreparedStatement hunterSnapshotStatement = connection.prepareStatement(hunterSeason2);
 			hunterSnapshotStatement.setBytes(1, handlePolicyBytes);
 			hunterSnapshotStatement.setTimestamp(2, Timestamp.from(start));
+			hunterSnapshotStatement.setTimestamp(3, Timestamp.from(end));
 
 			ResultSet resultSet = hunterSnapshotStatement.executeQuery();
 
