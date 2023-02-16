@@ -10,4 +10,6 @@ public class Hunter2SnapshotRow {
 	private Long count;
 
 	private String handle;
+	
+	private Integer rank;
 }

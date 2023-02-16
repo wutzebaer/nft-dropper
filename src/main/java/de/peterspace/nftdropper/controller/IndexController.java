@@ -40,6 +40,9 @@ public class IndexController {
 	
 	@Value("${charly.hunter2.start}")
 	private String hunter2Start;
+	
+	@Value("${charly.hunter2.end}")
+	private String hunter2End;
 
 	private final NftSupplier nftSupplier;
 	private final CharlySeller charlySeller;
@@ -68,6 +71,13 @@ public class IndexController {
 		return "charly_bowl";
 	}
 
+	@GetMapping("/games")
+	public String games(Model model) {
+		addAttributes(model);
+		return "charly_games";
+	}
+
+	
 	@GetMapping("/hunter1")
 	public String hunter(Model model) {
 		addAttributes(model);
@@ -136,6 +146,7 @@ public class IndexController {
 			model.addAttribute("minTokens", minTokens);
 			model.addAttribute("hunterStart", hunterStart);
 			model.addAttribute("hunter2Start", hunter2Start);
+			model.addAttribute("hunter2End", hunter2End);
 		}
 	}
 

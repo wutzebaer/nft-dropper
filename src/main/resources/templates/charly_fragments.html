@@ -9,6 +9,13 @@
 				<img th:src="@{/images/KCharles logo 2000x2000px.png}">
 			</a>
 		</p>
+
+		<p class="countdown">
+			<a href="hunter2">
+				Charly hunt season 2 starts in
+				<span th:data-countdown="${hunter2Start}"></span>
+			</a>
+		</p>
 	</div>
 
 	<div th:fragment="footer">
@@ -40,7 +47,7 @@
 			</a>
 		</p>
 
-		
+
 		<div class="partners">Partners</div>
 		<p id="friends-line">
 			<a target="_blank" href="https://www.taptools.io/">
@@ -65,7 +72,7 @@
 				<img th:src="@{/images/NewPTLogo.png}">
 			</a>
 		</p>
-		
+
 		<p id="powered-line">
 			POWERED BY
 			<a target="_blank" href="https://cardano-tools.io">

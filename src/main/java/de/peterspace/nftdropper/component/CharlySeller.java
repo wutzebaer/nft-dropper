@@ -229,8 +229,11 @@ public class CharlySeller {
 							}
 						}
 						charlyJackpotCounter.setCount(currentTxNum);
-						//charlyJackpotCounterRepository.save(charlyJackpotCounter);
+						charlyJackpotCounterRepository.save(charlyJackpotCounter);
 					}
+				} else {
+					charlyJackpotCounter.setCount(0);
+					charlyJackpotCounterRepository.save(charlyJackpotCounter);
 				}
 
 				// gather charlyToken inputs

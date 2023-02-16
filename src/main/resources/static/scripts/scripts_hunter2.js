@@ -6,8 +6,11 @@ function updateHunt() {
 
 			if (result.length) {
 				$('#loading').hide();
+				$('.hunter-lane-header').show();
+
 			} else {
 				$('#loading').show();
+				$('.hunter-lane-header').hide();
 			}
 
 			let maxTransactions = Math.max(...result.map(r => r.count));
@@ -19,6 +22,19 @@ function updateHunt() {
 					$('#' + row.stakeAddress).find('.hunter').css('left', row.count / maxTransactions * 100 + '%');
 					$('#' + row.stakeAddress).data('place', place);
 					$('#' + row.stakeAddress).find('.hunter .bottom').text(row.count);
+
+					let hunter = $('#' + row.stakeAddress).find('.hunter');
+					if (row.rank) {
+						if (hunter.find('.rank').length === 0) {
+							hunter.append(`<img class="rank" src="/images/rank${row.rank}.png">`);
+							setTimeout(() => hunter.append(`<img class="firework" src="/images/firework.gif">`), 2000);
+							setTimeout(() => hunter.find('.firework').remove(), 5000);
+						}
+					} else {
+						hunter.find('.rank').remove();
+					}
+
+
 				} else {
 					$('.hunter-field').append(
 						`
@@ -50,16 +66,21 @@ setInterval(updateHunt, 1000);
 updateHunt();
 
 function reveal() {
-	let el = $('[data-countdown]');
+	let el = $('#countdown_start [data-countdown]');
 	let end = Date.parse($(el).data('countdown') + 'Z');
 	let now = new Date().getTime();
 	let secondsLeft = Math.max((end - now) / 1000, 0);
 	if (secondsLeft > 0) {
 		$('.hunter-field-boundary').hide();
+		$('#countdown_end').hide();
 	} else {
 		$('.hunter-field-boundary').show();
+		$('#countdown_start').hide();
+		$('#countdown_end').show();
 	}
 }
 
 setInterval(reveal, 1000);
 reveal();
+
+

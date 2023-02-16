@@ -9,7 +9,6 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -31,6 +30,7 @@ import org.springframework.stereotype.Component;
 import com.zaxxer.hikari.HikariDataSource;
 
 import de.peterspace.nftdropper.TrackExecutionTime;
+import de.peterspace.nftdropper.model.Address;
 import de.peterspace.nftdropper.model.FullTokenData;
 import de.peterspace.nftdropper.model.Hunter2SnapshotRow;
 import de.peterspace.nftdropper.model.HunterSnapshotRow;
@@ -95,8 +95,8 @@ public class CardanoDbSyncClient {
 				join tx_out to_txo on to_txo.tx_id = tx.id
 				join stake_address sa on sa.id=to_txo.stake_address_id
 				join block b on b.id=tx.block_id
-				where from_txo.address = 'addr1v9gs0trlcmyty7jakcewjs3h00a7xrzyd5wnyfrpeg4wjts0ugx63'
-				and to_txo.address not in ('addr1v9gs0trlcmyty7jakcewjs3h00a7xrzyd5wnyfrpeg4wjts0ugx63', 'addr1q8yv5fqyx76s3jtrw96qgz9ply32hq84690dq6psdfazrmn2cr3agje4kp2e3crjatftkjtuugs3ftpwz8lxugwng8fq9wl02y')
+				where from_txo.address = ?
+				and to_txo.address not in (?, ?)
 				and b."time">?
 				and b."time"<?
 				order by tx.id desc, to_txo."index"
@@ -291,12 +291,15 @@ public class CardanoDbSyncClient {
 		}
 	}
 
-	public List<Hunter2SnapshotRow> createHunter2Snapshot(Instant start, Instant end) {
+	public List<Hunter2SnapshotRow> createHunter2Snapshot(Address paymentAddress, String sellerAddress, Instant start, Instant end) {
 		try (Connection connection = hds.getConnection()) {
 			PreparedStatement hunterSnapshotStatement = connection.prepareStatement(hunterSeason2);
 			hunterSnapshotStatement.setBytes(1, handlePolicyBytes);
-			hunterSnapshotStatement.setTimestamp(2, Timestamp.from(start));
-			hunterSnapshotStatement.setTimestamp(3, Timestamp.from(end));
+			hunterSnapshotStatement.setString(2, paymentAddress.getAddress());
+			hunterSnapshotStatement.setString(3, paymentAddress.getAddress());
+			hunterSnapshotStatement.setString(4, sellerAddress);
+			hunterSnapshotStatement.setTimestamp(5, Timestamp.from(start));
+			hunterSnapshotStatement.setTimestamp(6, Timestamp.from(end));
 
 			ResultSet resultSet = hunterSnapshotStatement.executeQuery();
 
@@ -306,7 +309,9 @@ public class CardanoDbSyncClient {
 				Hunter2SnapshotRow hunterSnapshotRow = new Hunter2SnapshotRow();
 				hunterSnapshotRow.setStakeAddress(resultSet.getString("stake_address"));
 				hunterSnapshotRow.setCount(resultSet.getLong("count"));
-				hunterSnapshotRow.setHandle(new String(resultSet.getBytes("handle"), StandardCharsets.UTF_8));
+				if (resultSet.getBytes("handle") != null) {
+					hunterSnapshotRow.setHandle(new String(resultSet.getBytes("handle"), StandardCharsets.UTF_8));
+				}
 				rows.add(hunterSnapshotRow);
 			}
 
