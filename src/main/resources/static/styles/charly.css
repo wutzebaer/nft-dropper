@@ -168,7 +168,6 @@ a:hover {
 	word-wrap: break-word;
 }
 
-
 /* friends */
 #friends-line {
 	text-align: center;
@@ -185,6 +184,10 @@ a:hover {
 
 .modal-body {
 	word-wrap: break-word;
+}
+
+p {
+	text-align: center;
 }
 
 @media ( max-width : 1200px) {
@@ -211,7 +214,7 @@ a:hover {
 		width: 50vw;
 	}
 	#button-line .main-button .circle {
-
+		
 	}
 }
 
@@ -301,14 +304,12 @@ a:hover {
 	position: absolute;
 	height: 100px;
 	width: 100%;
-	
-	background: url("/images/lane_start.png"),url("/images/lane_end.png"),url("/images/lane_middle.png");
-	
+	background: url("/images/lane_start.png"), url("/images/lane_end.png"),
+		url("/images/lane_middle.png");
 	background-repeat: no-repeat;
-  	background-position: 0% 0%, 100% 0%, 50% 0%;
-  	background-size: auto 100%, auto 100%, 100% 100%;
+	background-position: 0% 0%, 100% 0%, 50% 0%;
+	background-size: auto 100%, auto 100%, 100% 100%;
 	background-origin: content-box;
-	
 	left: 0;
 	padding: inherit;
 	transition: top 2s;
@@ -393,11 +394,9 @@ a:hover {
 	object-fit: scale-down;
 }
 
-
 .total-holders .number {
+	
 }
-
-
 
 .countdown {
 	font-family: BlackOpsOne;
@@ -410,6 +409,7 @@ a:hover {
 	color: inherit;
 	text-decoration: none;
 }
+
 .countdown a:hover {
 	text-decoration: underline;
 }

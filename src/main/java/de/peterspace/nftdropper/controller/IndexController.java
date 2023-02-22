@@ -89,6 +89,12 @@ public class IndexController {
 		addAttributes(model);
 		return "charly_hunter2";
 	}
+	
+	@GetMapping("/goldRush")
+	public String goldRush(Model model) {
+		addAttributes(model);
+		return "charly_gold_rush";
+	}
 
 	@GetMapping("/holders")
 	public String holders(Model model) {
