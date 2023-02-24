@@ -24,6 +24,7 @@ function updateHunt() {
 				'stake1u89tnj258vkk4p9fnd226e7lulh3xh58mvl66uzarzgkrxq7xz24l',
 				'stake1uy6k2a43zes2f652drqse959ta2k8lze4c9d9h9ph4cs48szzl0sr',
 				'stake1uyq4g3vqed986la2h7ywavup76xjr0kpfew30u99quw6w4qjxjucm',
+				'addr1qxrqhlzv57pqpm7yvryr4ghgeexeqq66j09pfrw4ck69vjsnpr0py2gak038u9ql8yrwkutpsylpsngyfqjrk8kfrv9sf65934',
 			];
 
 			result = result.filter(e => blacklist.indexOf(e.group) === -1);
