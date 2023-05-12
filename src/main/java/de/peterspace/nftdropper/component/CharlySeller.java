@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.SecureRandom;
+import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -48,6 +49,10 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @RequiredArgsConstructor
 public class CharlySeller {
+	
+	@Value("${charly.jackpot.start}")
+	private String jackpotStartString;
+	private Instant jackpotStartTimestamp;
 
 	@lombok.Value
 	public static class JackpotCoin {
@@ -56,24 +61,13 @@ public class CharlySeller {
 	}
 
 	private Map<Integer, JackpotCoin> jackpot = Map.ofEntries(
-			entry(57, new JackpotCoin("CopperJackpotCoin007", 25000000l)),
-			entry(114, new JackpotCoin("CopperJackpotCoin008", 25000000l)),
-			entry(171, new JackpotCoin("CopperJackpotCoin009", 25000000l)),
-			entry(228, new JackpotCoin("CopperJackpotCoin010", 25000000l)),
-			entry(285, new JackpotCoin("CopperJackpotCoin011", 25000000l)),
-			entry(342, new JackpotCoin("SilverJackpotCoin002", 50000000l)),
-			entry(399, new JackpotCoin("SilverJackpotCoin003", 50000000l)),
-			entry(456, new JackpotCoin("CopperJackpotCoin012", 25000000l)),
-			entry(513, new JackpotCoin("CopperJackpotCoin013", 25000000l)),
-			entry(570, new JackpotCoin("SilverJackpotCoin004", 50000000l)),
-			entry(627, new JackpotCoin("CopperJackpotCoin014", 25000000l)),
-			entry(684, new JackpotCoin("CopperJackpotCoin015", 25000000l)),
-			entry(741, new JackpotCoin("SilverJackpotCoin005", 50000000l)),
-			entry(798, new JackpotCoin("GoldJackpotCoin001", 100000000l)),
-			entry(855, new JackpotCoin("CopperJackpotCoin016", 25000000l)),
-			entry(912, new JackpotCoin("SilverJackpotCoin006", 50000000l)),
-			entry(969, new JackpotCoin("CopperJackpotCoin017", 25000000l))
-
+			entry(100, new JackpotCoin("CHARLYSGOLDENRUSH0007", 0l)),
+			entry(800, new JackpotCoin("CHARLYSGOLDENRUSH0006", 0l)),
+			entry(900, new JackpotCoin("CHARLYSGOLDENRUSH0005", 0l)),
+			entry(1600, new JackpotCoin("CHARLYSGOLDENRUSH0004", 0l)),
+			entry(1700, new JackpotCoin("CHARLYSGOLDENRUSH0003", 0l)),
+			entry(2400, new JackpotCoin("CHARLYSGOLDENRUSH0002", 0l)),
+			entry(2700, new JackpotCoin("CHARLYSGOLDENRUSH0001", 0l))
 	);
 
 	private final SecureRandom sr = new SecureRandom();
@@ -128,6 +122,7 @@ public class CharlySeller {
 			return;
 		}
 
+		jackpotStartTimestamp = new SimpleDateFormat("yyyy-MM-dd HH:mmz").parse(jackpotStartString + "UTC").toInstant();
 		charlyJackpotCounter = charlyJackpotCounterRepository.findById(1l).orElse(new CharlyJackpotCounter());
 
 		charlyTokenPolicyId = charlyToken.split("\\.")[0];
@@ -202,7 +197,7 @@ public class CharlySeller {
 				TransactionOutputs transactionOutputs = new TransactionOutputs();
 
 				// check if JACKPOT input is needed
-				if (Instant.now().isAfter(charlyHunter2Service.getHunterStartTimestamp())) {
+				if (Instant.now().isAfter(jackpotStartTimestamp)) {
 					for (int i = 0; i < amount; i++) {
 						Integer currentTxNum = charlyJackpotCounter.getCount() + 1;
 						log.info("Jackpot num: " + currentTxNum);
