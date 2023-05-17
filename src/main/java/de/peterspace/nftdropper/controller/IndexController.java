@@ -95,6 +95,12 @@ public class IndexController {
 		addAttributes(model);
 		return "charly_gold_rush";
 	}
+	
+	@GetMapping("/staking")
+	public String staking(Model model) {
+		addAttributes(model);
+		return "charly_staking";
+	}
 
 	@GetMapping("/holders")
 	public String holders(Model model) {
