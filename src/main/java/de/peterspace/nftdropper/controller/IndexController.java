@@ -135,6 +135,13 @@ public class IndexController {
 		model.addAttribute("charlyTokenService", charlyTokenService);
 		return "charly_nfts_seven";
 	}
+	
+	@GetMapping("/team")
+	public String team(Model model) {
+		addAttributes(model);
+		model.addAttribute("charlyTokenService", charlyTokenService);
+		return "charly_team";
+	}
 
 	private void addAttributes(Model model) {
 		if (StringUtils.isBlank(charlyToken)) {

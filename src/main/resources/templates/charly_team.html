@@ -1,0 +1,79 @@
+<!DOCTYPE HTML>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+<title>Cavalier King Charles - Charly</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+<link th:href="@{/styles/charly.css}" rel="stylesheet" />
+<link th:href="@{/styles/rainbow.css}" rel="stylesheet" />
+<link rel="icon" type="image/png" th:href="@{/images/King Charles_logo_small.png}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.1/font/bootstrap-icons.css">
+</head>
+<body>
+
+	<div th:replace="charly_fragments :: header"></div>
+
+	<h1>Charly's servants</h1>
+
+	<div id="servants">
+		<div id="servants-content">
+			<h2>Miha Z. Founder/Project manager alias Charly the king</h2>
+
+			<p>
+				<img th:src="@{/images/Miha.png}">
+			</p>
+			<p>I have been a huge fan of Cardano since 2017, primarily attracted to Hoskinson and impressed by the academic development of Cardano and their commitment to releasing thoroughly tested upgrades. Initially, my friends and I wanted to develop something on Cardano just for fun, but soon enough, we found several like-minded individuals from all over Europe, and overnight, the joke turned into a serious project. Given my reputation for being full of ideas, I simply felt that Cardano was the right place for me to create alongside my friends. When it comes to blockchain, I believe we are on a ship that will revolutionize the world of monetary policy. So why not contribute to a better tomorrow if we have the
+				opportunity? We just need to believe. If you believe in yourself and a better future, you are on the right ship that will eventually reach the shore.</p>
+
+			<h2>Grega P. Co-founder/advisor</h2>
+			<p>
+				<img th:src="@{/images/Grega.png}">
+			</p>
+			<p>Although I had a brief introduction to the crypto world in 2015, I only really got into it in 2017 after I got excited about idea, what the decentralized financial world could mean for the world. In that time I was present at the birth of Cardano blockchain and Hoskinson's famous White board convinced me that Cardano is a real and transparent future. I started to think about how to contribute to the ecosystem and together with the other founders we got the idea about the Charly-token project. I’m the co-founder of the Charly-token project, where I use my knowledge and experience as an advisor in several areas.</p>
+		
+			<h2>Gabriel M. co-founder/discord moderator</h2>
+			<p>
+				<img th:src="@{/images/Gabriel.png}">
+			</p>
+			<p>I'm French enthusiast passionate about Cardano and its ecosystem, I have made crypto my hobby. I offer to share everything I've learned about economics, impacts, pools, and NFTs. </p>
+		
+			<h2>Samer U. marketing/discord manager</h2>
+			<p>
+				<img th:src="@{/images/Samer.png}">
+			</p>
+			<p>I am a PhD chemist with a strong interest in aviation and the world of cryptocurrencies, particularly ADA. Join me on a journey towards financial freedom through crypto and ADA. I am primarily focused on discovering innovative approaches to further develop our project, Charly. I am diligently working on effective communication strategies for this venture.</p>
+			
+			<h2>Peter G. Developer/technical support</h2>
+			<p>
+				<img th:src="@{/images/Peter.png}">
+			</p>
+			<p>As a seasoned Java developer with a deep-rooted interest in blockchain technology, I've recently shifted my focus to the promising landscape of the Cardano chain. Passionate about leveraging the power of decentralized systems, I have enthusiastically joined the Charly-token project, where I apply my programming expertise to contribute to the project's success. My role within the Charly project involves not only coding, but also problem-solving and strategic thinking, always aiming to innovate and improve the way we approach blockchain solutions on the Cardano platform.</p>
+		
+			<h2>Wouter graphic designer/discord moderator</h2>
+			<p>
+				<img th:src="@{/images/wouter.png}">
+			</p>
+			<p>I am a civil engineering designer and creative tech optimist. I bring a diverse and creative perspective to the Charly project. I am thrilled to be part of this journey, where my digital brushstrokes become part of something greater. Together, we are creating a fusion of art and technology, and I'm excited to see where it takes us.</p>
+		
+			<h2>Martin U. graphic designer/digital artist</h2>
+			<p>
+				<img th:src="@{/images/martin.png}">
+			</p>
+			<p>As a digital artist, I love to play with programs like Photoshop and Illustrator, bringing colors and creativity to life! I thoroughly enjoy exploring the endless possibilities of these tools and using them to create captivating artworks. Playing with colors and working with art is my true passion. I find immense joy in blending hues and shades, bringing depth and vibrancy to my digital creations. It's an incredible feeling to witness my visions come to life on the screen. What truly inspires me is the amazing team I have the privilege of working with. Their support and collaboration push me to new heights, and together, we believe in the immense potential of the Charly project. By contributing my artistic skills, I aim to help our team make a lasting impact.</p>
+		</div>
+	</div>
+
+	<div th:replace="charly_fragments :: footer"></div>
+
+	<script th:inline="javascript">
+		/*<![CDATA[*/
+		var tokenPrice = /*[[${tokenPrice}]]*/0;
+		/*]]>*/
+	</script>
+	<script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.0/clipboard.min.js"></script>
+	<script th:src="@{/scripts/scripts_charly.js}"></script>
+</body>
+</html>
