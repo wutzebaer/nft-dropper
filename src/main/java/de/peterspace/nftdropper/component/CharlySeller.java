@@ -61,7 +61,7 @@ public class CharlySeller {
 	}
 
 	private Map<Integer, JackpotCoin> jackpot = Map.ofEntries(
-			entry(100, new JackpotCoin("CHARLYSGOLDENRUSH0007", 0l)),
+			entry(350, new JackpotCoin("CHARLYSGOLDENRUSH0007", 0l)),
 			entry(800, new JackpotCoin("CHARLYSGOLDENRUSH0006", 0l)),
 			entry(900, new JackpotCoin("CHARLYSGOLDENRUSH0005", 0l)),
 			entry(1600, new JackpotCoin("CHARLYSGOLDENRUSH0004", 0l)),
