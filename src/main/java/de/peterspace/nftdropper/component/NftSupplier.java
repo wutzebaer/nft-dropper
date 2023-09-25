@@ -2,7 +2,6 @@ package de.peterspace.nftdropper.component;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.nio.file.CopyOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -14,8 +13,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import javax.annotation.PostConstruct;
-
 import org.json.JSONObject;
 import org.json.JSONTokener;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,6 +20,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import de.peterspace.nftdropper.model.TokenData;
+import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -81,11 +79,6 @@ public class NftSupplier {
 		availableTokens.addAll(tokenDatas);
 	}
 
-	public Optional<TokenData> getToken(String assetName) {
-		Optional<TokenData> tokenData = availableTokens.stream().filter(t -> t.getFilename().equals(assetName)).findFirst();
-		return tokenData;
-	}
-
 	public void removeTokenFromSale(List<TokenData> tokenDatas) throws IOException {
 		for (TokenData tokenData : tokenDatas) {
 			Files.move(sourceFolder.resolve(tokenData.getFilename()), soldFolder.resolve(tokenData.getFilename()), StandardCopyOption.REPLACE_EXISTING);
@@ -96,7 +89,5 @@ public class NftSupplier {
 	public int tokensLeft() {
 		return availableTokens.size();
 	}
-
-
 
 }

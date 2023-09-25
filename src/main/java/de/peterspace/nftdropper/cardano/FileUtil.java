@@ -9,11 +9,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 @Component
 @Validated
-@Slf4j
 @RequiredArgsConstructor
 public class FileUtil {
 

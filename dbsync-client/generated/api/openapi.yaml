@@ -239,6 +239,31 @@ paths:
       tags:
       - rest-handler
       x-accepts: application/json
+  /cardanoDbSyncApi/policy/{policyId}/owners:
+    get:
+      operationId: getOwners
+      parameters:
+      - example: d1edc4dfb4f5f7fb240239ad64a4730c2fd4744eda3c8a7d0fff1f92
+        explode: false
+        in: path
+        name: policyId
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/OwnerInfo'
+                type: array
+          description: OK
+      summary: "Get all token owners of a policyId, values get updated twice a day"
+      tags:
+      - rest-handler
+      x-accepts: application/json
   /cardanoDbSyncApi/epochStake/{poolHash}/{epoch}:
     get:
       operationId: getEpochStake
@@ -486,6 +511,28 @@ components:
       required:
       - poolHash
       - tickerName
+      type: object
+    OwnerInfo:
+      example:
+        amount: 0
+        maNames:
+        - maNames
+        - maNames
+        address: address
+      properties:
+        address:
+          type: string
+        amount:
+          format: int64
+          type: integer
+        maNames:
+          items:
+            type: string
+          type: array
+      required:
+      - address
+      - amount
+      - maNames
       type: object
     EpochStake:
       example:

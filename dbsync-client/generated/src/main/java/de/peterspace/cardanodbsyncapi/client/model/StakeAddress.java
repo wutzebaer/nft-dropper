@@ -29,7 +29,7 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 @JsonPropertyOrder({
   StakeAddress.JSON_PROPERTY_ADDRESS
 })
-@jakarta.annotation.Generated(value = "org.openapitools.codegen.languages.JavaClientCodegen", date = "2023-09-23T22:01:50.053590+02:00[Europe/Berlin]")
+@jakarta.annotation.Generated(value = "org.openapitools.codegen.languages.JavaClientCodegen", date = "2023-09-25T16:31:10.010729500+02:00[Europe/Berlin]")
 public class StakeAddress {
   public static final String JSON_PROPERTY_ADDRESS = "address";
   private String address;

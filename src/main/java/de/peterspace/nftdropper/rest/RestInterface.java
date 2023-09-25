@@ -4,13 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.NotNull;
-
 import org.apache.commons.codec.DecoderException;
-import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.client5.http.entity.UrlEncodedFormEntity;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
@@ -29,19 +23,16 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import de.peterspace.cardanodbsyncapi.client.model.OwnerInfo;
+import de.peterspace.cardanodbsyncapi.client.model.TokenListItem;
 import de.peterspace.nftdropper.cardano.CardanoCli;
 import de.peterspace.nftdropper.cardano.CardanoDbSyncClient;
-import de.peterspace.nftdropper.cardano.CardanoDbSyncClient.MintedToken;
-import de.peterspace.nftdropper.component.CharlyHunter2Service;
-import de.peterspace.nftdropper.component.CharlyHunterService;
 import de.peterspace.nftdropper.component.NftMinter;
 import de.peterspace.nftdropper.component.NftSupplier;
-import de.peterspace.nftdropper.component.ShopItemService;
-import de.peterspace.nftdropper.component.ShopItemService.ShopItem;
 import de.peterspace.nftdropper.model.Address;
-import de.peterspace.nftdropper.model.Hunter2SnapshotRow;
-import de.peterspace.nftdropper.model.HunterSnapshotRow;
 import de.peterspace.nftdropper.repository.AddressRepository;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -62,10 +53,7 @@ public class RestInterface {
 	private final NftSupplier nftSupplier;
 	private final NftMinter nftMinter;
 	private final AddressRepository addressRepository;
-	private final ShopItemService shopItemService;
 	private final CardanoDbSyncClient cardanoDbSyncClient;
-	private final CharlyHunterService charlyHunterService;
-	private final CharlyHunter2Service charlyHunter2Service;
 
 	@GetMapping("address")
 	public String getAddress() {
@@ -126,43 +114,14 @@ public class RestInterface {
 		}
 	}
 
-	@GetMapping("tokenAddress")
-	public ResponseEntity<String> getAddress(@NotEmpty String assetName, @NotNull Long key) throws Exception {
-		Optional<ShopItem> shopItem = shopItemService.getShopItems().stream().filter(e -> e.getAssetName().equals(assetName)).findFirst();
-		if (shopItem.isEmpty()) {
-			return new ResponseEntity<String>(HttpStatus.NOT_FOUND);
-		} else if (!shopItem.get().getMetaData().getString("price").equals(DigestUtils.sha256Hex("" + key))) {
-			return new ResponseEntity<String>(HttpStatus.UNAUTHORIZED);
-		} else {
-			Address findByAssetName = addressRepository.findByAssetName(assetName);
-			if (findByAssetName == null) {
-				findByAssetName = cardanoCli.createDisposableAddress();
-				findByAssetName.setAssetName(assetName);
-				addressRepository.save(findByAssetName);
-			}
-			return new ResponseEntity<String>(findByAssetName.getAddress(), HttpStatus.OK);
-		}
-
-	}
-
 	@GetMapping("policyTokens")
-	public List<MintedToken> getPolicyTokens() throws DecoderException {
-		return cardanoDbSyncClient.policyTokens(nftMinter.getPolicy().getPolicyId());
-	}
-
-	@GetMapping("currentHunterValues")
-	public List<HunterSnapshotRow> getCurrentHunterValues() {
-		return charlyHunterService.getCurrentToplist();
+	public List<TokenListItem> getPolicyTokens() throws DecoderException {
+		return cardanoDbSyncClient.getPolicyTokens(nftMinter.getPolicy().getPolicyId());
 	}
 
 	@GetMapping("currentCharlyHolders")
-	public List<HunterSnapshotRow> getCurrentCharlyHolders() {
-		return charlyHunterService.getChainSnapshot();
-	}
-
-	@GetMapping("currentHunter2Values")
-	public List<Hunter2SnapshotRow> getCurrentHunter2Values() {
-		return charlyHunter2Service.getCurrentToplist();
+	public List<OwnerInfo> getCurrentCharlyHolders() {
+		return cardanoDbSyncClient.getCurrentCharlyHolders();
 	}
 
 }

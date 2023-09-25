@@ -4,6 +4,7 @@ import de.peterspace.cardanodbsyncapi.client.ApiClient;
 
 import de.peterspace.cardanodbsyncapi.client.model.AccountStatementRow;
 import de.peterspace.cardanodbsyncapi.client.model.EpochStake;
+import de.peterspace.cardanodbsyncapi.client.model.OwnerInfo;
 import de.peterspace.cardanodbsyncapi.client.model.PoolInfo;
 import de.peterspace.cardanodbsyncapi.client.model.ReturnAddress;
 import de.peterspace.cardanodbsyncapi.client.model.StakeAddress;
@@ -33,7 +34,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
-@jakarta.annotation.Generated(value = "org.openapitools.codegen.languages.JavaClientCodegen", date = "2023-09-23T22:01:50.053590+02:00[Europe/Berlin]")
+@jakarta.annotation.Generated(value = "org.openapitools.codegen.languages.JavaClientCodegen", date = "2023-09-25T16:31:10.010729500+02:00[Europe/Berlin]")
 public class RestHandlerApi {
     private ApiClient apiClient;
 
@@ -158,6 +159,55 @@ public class RestHandlerApi {
 
         ParameterizedTypeReference<List<EpochStake>> localReturnType = new ParameterizedTypeReference<List<EpochStake>>() {};
         return apiClient.invokeAPI("/cardanoDbSyncApi/epochStake/{poolHash}/{epoch}", HttpMethod.GET, uriVariables, localVarQueryParams, localVarPostBody, localVarHeaderParams, localVarCookieParams, localVarFormParams, localVarAccept, localVarContentType, localVarAuthNames, localReturnType);
+    }
+    /**
+     * Get all token owners of a policyId, values get updated twice a day
+     * 
+     * <p><b>200</b> - OK
+     * @param policyId  (required)
+     * @return List&lt;OwnerInfo&gt;
+     * @throws RestClientException if an error occurs while attempting to invoke the API
+     */
+    public List<OwnerInfo> getOwners(String policyId) throws RestClientException {
+        return getOwnersWithHttpInfo(policyId).getBody();
+    }
+
+    /**
+     * Get all token owners of a policyId, values get updated twice a day
+     * 
+     * <p><b>200</b> - OK
+     * @param policyId  (required)
+     * @return ResponseEntity&lt;List&lt;OwnerInfo&gt;&gt;
+     * @throws RestClientException if an error occurs while attempting to invoke the API
+     */
+    public ResponseEntity<List<OwnerInfo>> getOwnersWithHttpInfo(String policyId) throws RestClientException {
+        Object localVarPostBody = null;
+        
+        // verify the required parameter 'policyId' is set
+        if (policyId == null) {
+            throw new HttpClientErrorException(HttpStatus.BAD_REQUEST, "Missing the required parameter 'policyId' when calling getOwners");
+        }
+        
+        // create path and map variables
+        final Map<String, Object> uriVariables = new HashMap<String, Object>();
+        uriVariables.put("policyId", policyId);
+
+        final MultiValueMap<String, String> localVarQueryParams = new LinkedMultiValueMap<String, String>();
+        final HttpHeaders localVarHeaderParams = new HttpHeaders();
+        final MultiValueMap<String, String> localVarCookieParams = new LinkedMultiValueMap<String, String>();
+        final MultiValueMap<String, Object> localVarFormParams = new LinkedMultiValueMap<String, Object>();
+
+        final String[] localVarAccepts = { 
+            "application/json"
+         };
+        final List<MediaType> localVarAccept = apiClient.selectHeaderAccept(localVarAccepts);
+        final String[] localVarContentTypes = {  };
+        final MediaType localVarContentType = apiClient.selectHeaderContentType(localVarContentTypes);
+
+        String[] localVarAuthNames = new String[] {  };
+
+        ParameterizedTypeReference<List<OwnerInfo>> localReturnType = new ParameterizedTypeReference<List<OwnerInfo>>() {};
+        return apiClient.invokeAPI("/cardanoDbSyncApi/policy/{policyId}/owners", HttpMethod.GET, uriVariables, localVarQueryParams, localVarPostBody, localVarHeaderParams, localVarCookieParams, localVarFormParams, localVarAccept, localVarContentType, localVarAuthNames, localReturnType);
     }
     /**
      * getPoolList

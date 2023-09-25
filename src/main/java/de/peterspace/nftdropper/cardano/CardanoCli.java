@@ -1,6 +1,5 @@
 package de.peterspace.nftdropper.cardano;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -10,9 +9,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import javax.annotation.PostConstruct;
-
-import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -20,21 +16,20 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 
+import de.peterspace.cardanodbsyncapi.client.model.Utxo;
 import de.peterspace.nftdropper.cardano.exceptions.OutputTooSmallUTxOException;
 import de.peterspace.nftdropper.cardano.exceptions.PolicyExpiredException;
 import de.peterspace.nftdropper.cardano.exceptions.UnexpectedTokensException;
 import de.peterspace.nftdropper.cardano.exceptions.UnprocessedTransactionsException;
 import de.peterspace.nftdropper.model.Address;
 import de.peterspace.nftdropper.model.Policy;
-import de.peterspace.nftdropper.model.TransactionInputs;
 import de.peterspace.nftdropper.model.TransactionOutputs;
 import de.peterspace.nftdropper.util.CardanoUtil;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 @Component
 @Validated
-@Slf4j
 @RequiredArgsConstructor
 public class CardanoCli {
 
@@ -51,9 +46,8 @@ public class CardanoCli {
 	private static final String PROTOCOL_JSON_FILENAME = "protocol.json";
 	private static final String TRANSACTION_UNSIGNED_FILENAME = "transaction.unsigned";
 	private static final String TRANSACTION_METADATA_JSON_FILENAME = "transactionMetadata.json";
-	private static final String TRANSACTION_SIGNED_FILENAME = "transaction.signed";
 
-	@Value("${NETWORK}")
+	@Value("${network}")
 	private String network;
 
 	@Value("${cardano-node.ipc-volume-name}")
@@ -179,7 +173,7 @@ public class CardanoCli {
 		String vkey = fileUtil.readFile(vkeyFilename);
 		String addressLiteral = fileUtil.readFile(addressFilename);
 
-		Address address = new Address(addressLiteral, skey, vkey, 0, null);
+		Address address = new Address(addressLiteral, skey, vkey, 0);
 		return address;
 	}
 
@@ -238,10 +232,10 @@ public class CardanoCli {
 		return new Policy(policyString, policyId);
 	}
 
-	public String mint(List<TransactionInputs> transactionInputs, TransactionOutputs transactionOutputs, JSONObject metaData, Address paymentAddress, Policy policy, String changeAddress) throws Exception {
+	public String mint(List<Utxo> Utxo, TransactionOutputs transactionOutputs, JSONObject metaData, Address paymentAddress, Policy policy, String changeAddress) throws Exception {
 		try {
 
-			String txUnsignedFilename = buildTransaction(transactionInputs, transactionOutputs, metaData, policy, changeAddress);
+			String txUnsignedFilename = buildTransaction(Utxo, transactionOutputs, metaData, policy, changeAddress);
 			String signedTxFilename = signTransaction(txUnsignedFilename, paymentAddress, policy != null);
 			String txId = getTransactionId(signedTxFilename);
 			submitTransaction(signedTxFilename);
@@ -266,7 +260,7 @@ public class CardanoCli {
 
 	}
 
-	private String buildTransaction(List<TransactionInputs> transactionInputs, TransactionOutputs transactionOutputs, JSONObject metaData, Policy policy, String changeAddress) throws Exception {
+	private String buildTransaction(List<Utxo> utxos, TransactionOutputs transactionOutputs, JSONObject metaData, Policy policy, String changeAddress) throws Exception {
 
 		ArrayList<String> cmd = new ArrayList<String>();
 		cmd.addAll(List.of(cardanoCliCmd));
@@ -284,9 +278,9 @@ public class CardanoCli {
 		cmd.add("--witness-override");
 		cmd.add("2");
 
-		for (TransactionInputs utxo : transactionInputs) {
+		for (Utxo utxo : utxos) {
 			cmd.add("--tx-in");
-			cmd.add(utxo.getTxhash() + "#" + utxo.getTxix());
+			cmd.add(utxo.getTxHash() + "#" + utxo.getTxIndex());
 		}
 
 		for (String a : transactionOutputs.toCliFormat()) {
@@ -301,7 +295,7 @@ public class CardanoCli {
 				.collect(Collectors.toSet());
 		List<String> mints = new ArrayList<String>();
 		for (String assetEntry : outputAssets) {
-			long inputAmount = transactionInputs.stream().filter(i -> Objects.equals(formatCurrency(i.getPolicyId(), i.getAssetName()), assetEntry)).mapToLong(i -> i.getValue()).sum();
+			long inputAmount = utxos.stream().filter(utxo -> Objects.equals(formatCurrency(utxo.getMaPolicyId(), utxo.getMaName()), assetEntry)).mapToLong(i -> i.getValue()).sum();
 			long outputAmount = transactionOutputs.getOutputs().values().stream().flatMap(a -> a.entrySet().stream()).filter(e -> Objects.equals(e.getKey(), assetEntry)).mapToLong(e -> e.getValue()).sum();
 			long needed = outputAmount - inputAmount;
 			if (needed > 0) {
@@ -345,7 +339,7 @@ public class CardanoCli {
 				matcher.find();
 				Long missingFunds = Long.valueOf(matcher.group(1));
 				transactionOutputs.add(transactionOutputs.getOutputs().keySet().iterator().next(), "", missingFunds);
-				return buildTransaction(transactionInputs, transactionOutputs, metaData, policy, changeAddress);
+				return buildTransaction(utxos, transactionOutputs, metaData, policy, changeAddress);
 			} else {
 				throw e;
 			}
@@ -418,11 +412,11 @@ public class CardanoCli {
 		return txId;
 	}
 
-	private String formatCurrency(String policyId, String assetName) {
-		if (StringUtils.isBlank(assetName)) {
+	private String formatCurrency(String policyId, String assetNameHex) {
+		if (StringUtils.isBlank(assetNameHex)) {
 			return policyId;
 		} else {
-			return policyId + "." + Hex.encodeHexString(assetName.getBytes(StandardCharsets.UTF_8));
+			return policyId + "." + assetNameHex;
 		}
 	}
 

@@ -1,13 +1,12 @@
 package de.peterspace.nftdropper.model;
 
-import javax.persistence.Transient;
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
-
 import org.json.JSONObject;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+import jakarta.persistence.Transient;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 @Data

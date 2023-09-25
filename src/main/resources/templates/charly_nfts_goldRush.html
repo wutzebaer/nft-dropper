@@ -16,9 +16,9 @@
 			<div th:replace="charly_fragments :: header"></div>
 
 
-			<h1>Collection of fairy tale seven</h1>
+			<h1>Charly's golden rush</h1>
 			<div class="token-list">
-				<div class="token" th:each="token : ${charlyTokenService.getTokens('be3ee9322ec94d5446bfc1fdc582cb83a0f9bcbcec2ebd928d71175d')}">
+				<div class="token" th:each="token : ${charlyTokenService.getTokens('c1aa77d9cd7e267df0d0ec138367deb45ce7524eb2f0cc8bdd9c45d4')}">
 					<div th:text="${token.name}"></div>
 					<img loading="lazy" th:if="${token.image}" th:src="${'https://ipfs.cardano-tools.io/ipfs/' + charlyTokenService.right(token.image, 46)}"></img>
 				</div>

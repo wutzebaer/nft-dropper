@@ -6,6 +6,7 @@ All URIs are relative to *http://localhost:8080*
 |------------- | ------------- | -------------|
 | [**getAddressTokenList**](RestHandlerApi.md#getAddressTokenList) | **GET** /cardanoDbSyncApi/{address}/token | getAddressTokenList |
 | [**getEpochStake**](RestHandlerApi.md#getEpochStake) | **GET** /cardanoDbSyncApi/epochStake/{poolHash}/{epoch} | getEpochStake |
+| [**getOwners**](RestHandlerApi.md#getOwners) | **GET** /cardanoDbSyncApi/policy/{policyId}/owners | Get all token owners of a policyId, values get updated twice a day |
 | [**getPoolList**](RestHandlerApi.md#getPoolList) | **GET** /cardanoDbSyncApi/poolList | getPoolList |
 | [**getReturnAddress**](RestHandlerApi.md#getReturnAddress) | **GET** /cardanoDbSyncApi/{stakeAddress}/returnAddress | Find the first known address with the same stake address, which should not be mangled |
 | [**getStakeAddress**](RestHandlerApi.md#getStakeAddress) | **GET** /cardanoDbSyncApi/{address}/stakeAddress | Find stakeAddress of address |
@@ -130,6 +131,70 @@ public class Example {
 ### Return type
 
 [**List&lt;EpochStake&gt;**](EpochStake.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | OK |  -  |
+
+
+## getOwners
+
+> List&lt;OwnerInfo&gt; getOwners(policyId)
+
+Get all token owners of a policyId, values get updated twice a day
+
+### Example
+
+```java
+// Import classes:
+import de.peterspace.cardanodbsyncapi.client.ApiClient;
+import de.peterspace.cardanodbsyncapi.client.ApiException;
+import de.peterspace.cardanodbsyncapi.client.Configuration;
+import de.peterspace.cardanodbsyncapi.client.models.*;
+import de.peterspace.cardanodbsyncapi.client.RestHandlerApi;
+
+public class Example {
+    public static void main(String[] args) {
+        ApiClient defaultClient = Configuration.getDefaultApiClient();
+        defaultClient.setBasePath("http://localhost:8080");
+
+        RestHandlerApi apiInstance = new RestHandlerApi(defaultClient);
+        String policyId = "d1edc4dfb4f5f7fb240239ad64a4730c2fd4744eda3c8a7d0fff1f92"; // String | 
+        try {
+            List<OwnerInfo> result = apiInstance.getOwners(policyId);
+            System.out.println(result);
+        } catch (ApiException e) {
+            System.err.println("Exception when calling RestHandlerApi#getOwners");
+            System.err.println("Status code: " + e.getCode());
+            System.err.println("Reason: " + e.getResponseBody());
+            System.err.println("Response headers: " + e.getResponseHeaders());
+            e.printStackTrace();
+        }
+    }
+}
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **policyId** | **String**|  | |
+
+### Return type
+
+[**List&lt;OwnerInfo&gt;**](OwnerInfo.md)
 
 ### Authorization
 

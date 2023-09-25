@@ -19,8 +19,8 @@
 
 			<div class="token-list">
 				<div class="token" th:each="token : ${charlyTokenService.getTokens('78125194aefda7242d61099cb700552a0126d2370de3c9105cb23362')}">
-					<div th:text="${token.metadata?.getString('name')}"></div>
-					<img loading="lazy" th:if="${token.metadata?.getString('image')}" th:src="${'https://ipfs.cardano-tools.io/ipfs/' + charlyTokenService.right(token.metadata.getString('image'), 46)}"></img>
+					<div th:text="${token.name}"></div>
+					<img loading="lazy" th:if="${token.image}" th:src="${'https://ipfs.cardano-tools.io/ipfs/' + charlyTokenService.right(token.image, 46)}"></img>
 				</div>
 			</div>
 

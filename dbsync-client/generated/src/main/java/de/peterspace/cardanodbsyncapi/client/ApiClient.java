@@ -55,7 +55,7 @@ import java.time.OffsetDateTime;
 
 import de.peterspace.cardanodbsyncapi.client.auth.Authentication;
 
-@jakarta.annotation.Generated(value = "org.openapitools.codegen.languages.JavaClientCodegen", date = "2023-09-23T22:01:50.053590+02:00[Europe/Berlin]")
+@jakarta.annotation.Generated(value = "org.openapitools.codegen.languages.JavaClientCodegen", date = "2023-09-25T16:31:10.010729500+02:00[Europe/Berlin]")
 public class ApiClient extends JavaTimeFormatter {
     public enum CollectionFormat {
         CSV(","), TSV("\t"), SSV(" "), PIPES("|"), MULTI(null);

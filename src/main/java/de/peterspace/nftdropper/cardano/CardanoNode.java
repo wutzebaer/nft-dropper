@@ -3,12 +3,11 @@ package de.peterspace.nftdropper.cardano;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.annotation.PostConstruct;
-
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -16,7 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class CardanoNode {
 
-	@Value("${NETWORK}")
+	@Value("${network}")
 	private String network;
 
 	@Value("${cardano-node.ipc-volume-name}")
@@ -48,7 +47,6 @@ public class CardanoNode {
 			throw new RuntimeException("Network must be preview or mainnet");
 		}
 
-		
 		// ensure node is synced
 		while (true) {
 			try {

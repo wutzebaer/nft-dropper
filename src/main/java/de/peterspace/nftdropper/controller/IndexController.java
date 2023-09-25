@@ -10,7 +10,6 @@ import de.peterspace.nftdropper.component.CharlySeller;
 import de.peterspace.nftdropper.component.CharlyTokenService;
 import de.peterspace.nftdropper.component.NftMinter;
 import de.peterspace.nftdropper.component.NftSupplier;
-import de.peterspace.nftdropper.component.ShopItemService;
 import lombok.RequiredArgsConstructor;
 
 @Controller
@@ -37,17 +36,16 @@ public class IndexController {
 
 	@Value("${charly.hunter.start}")
 	private String hunterStart;
-	
+
 	@Value("${charly.hunter2.start}")
 	private String hunter2Start;
-	
+
 	@Value("${charly.hunter2.end}")
 	private String hunter2End;
 
 	private final NftSupplier nftSupplier;
 	private final CharlySeller charlySeller;
 	private final NftMinter nftMinter;
-	private final ShopItemService shopItemService;
 	private final CharlyTokenService charlyTokenService;
 
 	@GetMapping("/")
@@ -77,7 +75,6 @@ public class IndexController {
 		return "charly_games";
 	}
 
-	
 	@GetMapping("/hunter1")
 	public String hunter(Model model) {
 		addAttributes(model);
@@ -89,13 +86,13 @@ public class IndexController {
 		addAttributes(model);
 		return "charly_hunter2";
 	}
-	
+
 	@GetMapping("/goldRush")
 	public String goldRush(Model model) {
 		addAttributes(model);
 		return "charly_gold_rush";
 	}
-	
+
 	@GetMapping("/staking")
 	public String staking(Model model) {
 		addAttributes(model);
@@ -136,6 +133,13 @@ public class IndexController {
 		return "charly_nfts_seven";
 	}
 	
+	@GetMapping("/nfts-goldRush")
+	public String nftsGoldRush(Model model) {
+		addAttributes(model);
+		model.addAttribute("charlyTokenService", charlyTokenService);
+		return "charly_nfts_goldRush";
+	}
+
 	@GetMapping("/team")
 	public String team(Model model) {
 		addAttributes(model);
@@ -153,7 +157,6 @@ public class IndexController {
 			model.addAttribute("paymentAddress", nftMinter.getPaymentAddress());
 			model.addAttribute("siteKey", siteKey);
 			model.addAttribute("useCaptcha", useCaptcha);
-			model.addAttribute("shopItems", shopItemService.getShopItems());
 			model.addAttribute("policyId", nftMinter.getPolicy().getPolicyId());
 			model.addAttribute("availableTokens", nftSupplier.getAvailableTokens());
 		} else {

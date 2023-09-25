@@ -27,9 +27,9 @@ function updateHunt() {
 				'addr1qxrqhlzv57pqpm7yvryr4ghgeexeqq66j09pfrw4ck69vjsnpr0py2gak038u9ql8yrwkutpsylpsngyfqjrk8kfrv9sf65934',
 			];
 
-			result = result.filter(e => blacklist.indexOf(e.group) === -1);
-			let max = Math.max.apply(Math, result.map(e => e.quantity));
-			let min = Math.min.apply(Math, result.map(e => e.quantity));
+			result = result.filter(e => blacklist.indexOf(e.address) === -1).sort((e1, e2) => e2.amount - e1.amount);
+			let max = Math.max.apply(Math, result.map(e => e.amount));
+			let min = Math.min.apply(Math, result.map(e => e.amount));
 
 			minTokens = max;
 			$('#half-amount').text((Math.floor(max / 2 / 1000000 * 1) / 1) + 'm')
@@ -39,42 +39,28 @@ function updateHunt() {
 
 			for (row of result) {
 
-				if ($('#' + row.group).length) {
-					$('#' + row.group).find('.hunter').css('left', row.quantity / minTokens * 100 + '%');
-					$('#' + row.group).data('place', place);
-					$('#' + row.group).find('.hunter .bottom').text((Math.floor(row.quantity / 1000000 * 1000) / 1000) + 'm');
-
-					let hunter = $('#' + row.group).find('.hunter');
-					if (row.rank) {
-						if (hunter.find('.rank').length === 0) {
-							hunter.append(`<img class="rank" src="/images/rank${row.rank}.png">`);
-							setTimeout(() => hunter.append(`<img class="firework" src="/images/firework.gif">`), 2000);
-							setTimeout(() => hunter.find('.firework').remove(), 5000);
-						}
-					} else {
-						hunter.find('.rank').remove();
-					}
-				} else {
+				if (!$('#' + row.address).length) {
 					$('.hunter-field').append(
 						`
-						<div class="hunter-lane" id="${row.group}" data-place="${place}">
-							<div class="hunter" style="left: 0%">
-								<span class="top"><a target="_blank" href="https://cardanoscan.io/search?filter=all&value=${row.address}">${row.handle || row.address}</a></span>
+						<div class="hunter-lane" id="${row.address}">
+							<div class="hunter">
+								<span class="top"><a target="_blank" href="https://cardanoscan.io/search?filter=all&value=${row.address}">${row.address}</a></span>
 								<img src="/images/walking_.gif">
-								<span class="bottom">${(Math.floor(row.quantity / 1000000 * 1000) / 1000)}m</span>
+								<span class="bottom"></span>
 							</div>
 						</div>
 						`
 					);
 				}
 
+				$('#' + row.address).find('.hunter').css('left', row.amount / minTokens * 100 + '%');
+				$('#' + row.address).data('place', place);
+				$('#' + row.address).find('.hunter .bottom').text((Math.floor(row.amount / 1000000 * 1000) / 1000) + 'm');
+
 				place++;
 			}
 
-
-
-			let existingGroups = result.map(r => r.group);
-
+			let existingGroups = result.map(r => r.address);
 			$('.hunter-lane').each((i, el) => {
 				if (existingGroups.indexOf($(el).attr('id')) === -1) {
 					$(el).remove();
@@ -83,7 +69,9 @@ function updateHunt() {
 
 			let headingHeight = 56;
 			let laneHeight = 140;
+			// set total height
 			$('.hunter-field').css('height', $('.hunter-lane').length * laneHeight + headingHeight);
+			// set vertical positions
 			$('.hunter-lane').each((i, el) => {
 				$(el).css('top', $(el).data('place') * laneHeight + headingHeight);
 			});
@@ -92,20 +80,7 @@ function updateHunt() {
 		}
 	});
 }
-setInterval(updateHunt, 1000);
+setInterval(updateHunt, 10000);
 updateHunt();
 
-function reveal() {
-	let el = $('[data-countdown]');
-	let end = Date.parse($(el).data('countdown') + 'Z');
-	let now = new Date().getTime();
-	let secondsLeft = Math.max((end - now) / 1000, 0);
-	if (secondsLeft > 0) {
-		$('.hunter-field-boundary').hide();
-	} else {
-		$('.hunter-field-boundary').show();
-	}
-}
 
-setInterval(reveal, 1000);
-reveal();
