@@ -61,13 +61,10 @@ public class CharlySeller {
 	}
 
 	private Map<Integer, JackpotCoin> jackpot = Map.ofEntries(
-			entry(350, new JackpotCoin("CHARLYSGOLDENRUSH0007", 0l)),
-			entry(800, new JackpotCoin("CHARLYSGOLDENRUSH0006", 0l)),
-			entry(900, new JackpotCoin("CHARLYSGOLDENRUSH0005", 0l)),
-			entry(1600, new JackpotCoin("CHARLYSGOLDENRUSH0004", 0l)),
-			entry(1700, new JackpotCoin("CHARLYSGOLDENRUSH0003", 0l)),
-			entry(2400, new JackpotCoin("CHARLYSGOLDENRUSH0002", 0l)),
-			entry(2700, new JackpotCoin("CHARLYSGOLDENRUSH0001", 0l)));
+			entry(100, new JackpotCoin("CHARLYSGOLDENRUSH0006", 0l)),
+			entry(200, new JackpotCoin("CHARLYSGOLDENRUSH0005", 0l)),
+			entry(900, new JackpotCoin("CHARLYSGOLDENRUSH0004", 0l)),
+			entry(1000, new JackpotCoin("CHARLYSGOLDENRUSH0003", 0l)));
 
 	private final SecureRandom sr = new SecureRandom();
 
@@ -155,7 +152,8 @@ public class CharlySeller {
 			return;
 		}
 
-		List<Utxo> offerFundings = new ArrayList<>(cardanoDbSyncClient.getUtxos(paymentAddress.getAddress()));
+		List<Utxo> offerFundings = new ArrayList<>(cardanoDbSyncClient.getUtxos(paymentAddress.getAddress()))
+				.stream().filter(u -> !Objects.equals(u.getSourceAddress(), paymentAddress.getAddress())).toList();
 		List<Utxo> charlyUtxos = getCharlyInputs(offerFundings);
 		Map<String, List<Utxo>> buyerUtxosGroupedByStakingAddress = getPaymentInputs(offerFundings);
 
