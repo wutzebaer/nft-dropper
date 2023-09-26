@@ -152,8 +152,7 @@ public class CharlySeller {
 			return;
 		}
 
-		List<Utxo> offerFundings = new ArrayList<>(cardanoDbSyncClient.getUtxos(paymentAddress.getAddress()))
-				.stream().filter(u -> !Objects.equals(u.getSourceAddress(), paymentAddress.getAddress())).toList();
+		List<Utxo> offerFundings = new ArrayList<>(cardanoDbSyncClient.getUtxos(paymentAddress.getAddress()));
 		List<Utxo> charlyUtxos = getCharlyInputs(offerFundings);
 		Map<String, List<Utxo>> buyerUtxosGroupedByStakingAddress = getPaymentInputs(offerFundings);
 
@@ -354,6 +353,7 @@ public class CharlySeller {
 				.filter(of -> blacklist.getIfPresent(of.getSourceAddress()) == null)
 				.filter(isCharlyInput(offerFundings).negate())
 				.filter(isJackpotInput(offerFundings).negate())
+				.filter(u -> !Objects.equals(u.getSourceAddress(), paymentAddress.getAddress()))
 				.collect(Collectors.groupingBy(of -> of.getSourceAddress(), LinkedHashMap::new, Collectors.toList()));
 	}
 
