@@ -1,7 +1,10 @@
 package de.peterspace.nftdropper.cardano;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -17,20 +20,19 @@ import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 
 import de.peterspace.cardanodbsyncapi.client.model.Utxo;
-import de.peterspace.nftdropper.cardano.exceptions.OutputTooSmallUTxOException;
-import de.peterspace.nftdropper.cardano.exceptions.PolicyExpiredException;
-import de.peterspace.nftdropper.cardano.exceptions.UnexpectedTokensException;
-import de.peterspace.nftdropper.cardano.exceptions.UnprocessedTransactionsException;
 import de.peterspace.nftdropper.model.Address;
 import de.peterspace.nftdropper.model.Policy;
+import de.peterspace.nftdropper.model.Transaction;
 import de.peterspace.nftdropper.model.TransactionOutputs;
 import de.peterspace.nftdropper.util.CardanoUtil;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Component
 @Validated
 @RequiredArgsConstructor
+@Slf4j
 public class CardanoCli {
 
 	private static final Long oneAda = 1_000_000l;
@@ -43,88 +45,90 @@ public class CardanoCli {
 	private static final String POLICY_SKEY_FILENAME = "policy.skey";
 	private static final String POLICY_VKEY_FILENAME = "policy.vkey";
 	private static final String POLICY_ADDR_FILENAME = "policy.addr";
-	private static final String PROTOCOL_JSON_FILENAME = "protocol.json";
-	private static final String TRANSACTION_UNSIGNED_FILENAME = "transaction.unsigned";
-	private static final String TRANSACTION_METADATA_JSON_FILENAME = "transactionMetadata.json";
+	private static final Pattern missingLovelacePattern = Pattern.compile("Lovelace \\(-(\\d+)\\)");
 
 	@Value("${network}")
 	private String network;
 
-	@Value("${cardano-node.ipc-volume-name}")
-	private String ipcVolumeName;
-
 	@Value("${working.dir.external}")
 	private String workingDirExternal;
 
-	@Value("${cardano-node.version}")
-	private String nodeVersion;
-
 	private final CardanoNode cardanoNode;
 	private final FileUtil fileUtil;
+	private final CardanoCliDockerBridge cardanoCliDockerBridge;
 
-	private String[] cardanoCliCmd;
-	private String[] networkMagicArgs;
-
-	private String prefixFilename(String filename) {
-		return network + "." + filename;
-	}
+	private String protocolJson;
+	private String dummyAddress;
 
 	@PostConstruct
 	public void init() throws Exception {
 
-		// @formatter:off
-        cardanoCliCmd = new String[] {
-                "docker", "run",
-                "--rm",
-                "--entrypoint", "cardano-cli",
-                "-w", "/work",
-                "-e", "CARDANO_NODE_SOCKET_PATH=/ipc/node.socket",
-                "-v", ipcVolumeName + ":/ipc",
-                "-v", workingDirExternal + ":/work",
-                "inputoutput/cardano-node:" + nodeVersion
-        };
-        // @formatter:on
-		this.networkMagicArgs = cardanoNode.getNetworkMagicArgs();
-
 		ArrayList<String> cmd = new ArrayList<String>();
-		cmd.addAll(List.of(cardanoCliCmd));
 		cmd.add("query");
 		cmd.add("protocol-parameters");
 		cmd.add("--out-file");
-		cmd.add(prefixFilename(PROTOCOL_JSON_FILENAME));
-		cmd.addAll(List.of(networkMagicArgs));
-		ProcessUtil.runCommand(cmd.toArray(new String[0]));
+		cmd.add("protocol.json");
+		protocolJson = cardanoCliDockerBridge.requestCardanoCli(null, cmd.toArray(new String[0]), "protocol.json")[1];
+
+		if (network.equals("preview")) {
+			dummyAddress = "addr_test1qp8cprhse9pnnv7f4l3n6pj0afq2hjm6f7r2205dz0583ed6zj0zugmep9lxtuxq8unn85csx9g70ugq6dklmvq6pv3qa0n8cl";
+		} else if (network.equals("mainnet")) {
+			dummyAddress = "addr1q9h7988xmmpz2y50rg2n9fw6jd5rq95t8q84k4q6ne403nxahea9slntm5n8f06nlsynyf4m6sa0qd05agra0qgk09nq96rqh9";
+		} else {
+			throw new RuntimeException("Network must be preview or mainnet");
+		}
 
 	}
 
+	private HashMap<String, Long> calculateMinUtxoCache = new HashMap<>();
+
 	public long calculateMinUtxo(String addressValue) throws Exception {
+		String normalizedAddressValue = normalizeAddressValue(addressValue + "+" + oneAda);
+		Long cachedValue = calculateMinUtxoCache.get(normalizedAddressValue);
+		if (cachedValue != null) {
+			return cachedValue;
+		}
+
 		ArrayList<String> cmd = new ArrayList<String>();
-		cmd.addAll(List.of(cardanoCliCmd));
 
 		cmd.add("transaction");
 		cmd.add("calculate-min-required-utxo");
 
 		cmd.add("--protocol-params-file");
-		cmd.add(prefixFilename(PROTOCOL_JSON_FILENAME));
+		cmd.add("protocol.json");
 
 		if ("Babbage".equals(cardanoNode.getEra())) {
 			cmd.add("--babbage-era");
 		}
 
 		cmd.add("--tx-out");
-		cmd.add(addressValue + "+" + oneAda);
+		cmd.add(normalizedAddressValue);
 
-		String feeString = ProcessUtil.runCommand(cmd.toArray(new String[0]));
+		String feeString = cardanoCliDockerBridge.requestCardanoCliNomagic(Map.of("protocol.json", protocolJson), cmd.toArray(new String[0]))[0];
 		long fee = Long.valueOf(feeString.split(" ")[1]);
 
+		calculateMinUtxoCache.put(normalizedAddressValue, fee);
+
 		return fee;
+	}
+
+	private String normalizeAddressValue(String addressValue) {
+		String[] bits = addressValue.split("\\+");
+		bits[0] = dummyAddress;
+		for (int i = 1; i < bits.length; i++) {
+			String[] valueBits = bits[i].split(" ");
+			valueBits[0] = "1000000";
+			bits[i] = StringUtils.join(valueBits, " ");
+		}
+		return StringUtils.join(bits, "+");
 	}
 
 	public Address createPaymentAddress() throws Exception {
 		String skeyFilename = prefixFilename(PAYMENT_SKEY_FILENAME);
 		String vkeyFilename = prefixFilename(PAYMENT_VKEY_FILENAME);
 		String addressFilename = prefixFilename(PAYMENT_ADDR_FILENAME);
-		return createAddress(skeyFilename, vkeyFilename, addressFilename);
+		Address createAddress = createAddress(skeyFilename, vkeyFilename, addressFilename);
+		return createAddress;
 	}
 
 	public Address createPolicyAddress() throws Exception {
@@ -146,34 +150,36 @@ public class CardanoCli {
 	}
 
 	private Address createAddress(String skeyFilename, String vkeyFilename, String addressFilename) throws Exception {
-		if (!fileUtil.exists(skeyFilename)) {
-			ArrayList<String> cmd = new ArrayList<String>();
-			cmd.addAll(List.of(cardanoCliCmd));
-			cmd.add("address");
-			cmd.add("key-gen");
-			cmd.add("--verification-key-file");
-			cmd.add(vkeyFilename);
-			cmd.add("--signing-key-file");
-			cmd.add(skeyFilename);
-			ProcessUtil.runCommand(cmd.toArray(new String[0]));
+		if (fileUtil.exists(skeyFilename)) {
+			return new Address(
+					fileUtil.readFile(addressFilename),
+					fileUtil.readFile(skeyFilename),
+					fileUtil.readFile(vkeyFilename),
+					0);
 		}
 
 		ArrayList<String> cmd = new ArrayList<String>();
-		cmd.addAll(List.of(cardanoCliCmd));
+		cmd.add("address");
+		cmd.add("key-gen");
+		cmd.add("--signing-key-file");
+		cmd.add(skeyFilename);
+		cmd.add("--verification-key-file");
+		cmd.add(vkeyFilename);
+		String[] keyGenResponse = cardanoCliDockerBridge.requestCardanoCliNomagic(null, cmd.toArray(new String[0]), skeyFilename, vkeyFilename);
+
+		cmd = new ArrayList<String>();
 		cmd.add("address");
 		cmd.add("build");
 		cmd.add("--payment-verification-key-file");
 		cmd.add(vkeyFilename);
-		cmd.add("--out-file");
-		cmd.add(addressFilename);
-		cmd.addAll(List.of(networkMagicArgs));
-		ProcessUtil.runCommand(cmd.toArray(new String[0]));
+		String addressLiteral = cardanoCliDockerBridge.requestCardanoCli(Map.of(vkeyFilename, keyGenResponse[2]), cmd.toArray(new String[0]))[0];
 
-		String skey = fileUtil.readFile(skeyFilename);
-		String vkey = fileUtil.readFile(vkeyFilename);
-		String addressLiteral = fileUtil.readFile(addressFilename);
+		Address address = new Address(addressLiteral, keyGenResponse[1], keyGenResponse[2], 0);
 
-		Address address = new Address(addressLiteral, skey, vkey, 0);
+		fileUtil.writeFile(addressFilename, address.getAddress());
+		fileUtil.writeFile(skeyFilename, address.getSkey());
+		fileUtil.writeFile(vkeyFilename, address.getVkey());
+
 		return address;
 	}
 
@@ -194,12 +200,11 @@ public class CardanoCli {
 
 			// address hash
 			ArrayList<String> cmd1 = new ArrayList<String>();
-			cmd1.addAll(List.of(cardanoCliCmd));
 			cmd1.add("address");
 			cmd1.add("key-hash");
 			cmd1.add("--payment-verification-key-file");
 			cmd1.add(vkeyFilename);
-			String keyHash = ProcessUtil.runCommand(cmd1.toArray(new String[0]));
+			String keyHash = cardanoCliDockerBridge.requestCardanoCliNomagic(Map.of(vkeyFilename, fileUtil.readFile(vkeyFilename)), cmd1.toArray(new String[0]))[0];
 
 			// @formatter:off
 	        JSONObject script = new JSONObject()
@@ -221,49 +226,33 @@ public class CardanoCli {
 		}
 
 		ArrayList<String> cmd2 = new ArrayList<String>();
-		cmd2.addAll(List.of(cardanoCliCmd));
 		cmd2.add("transaction");
 		cmd2.add("policyid");
 		cmd2.add("--script-file");
 		cmd2.add(policyFilename);
-		String policyId = ProcessUtil.runCommand(cmd2.toArray(new String[0]));
+		String policyId = cardanoCliDockerBridge.requestCardanoCliNomagic(Map.of(policyFilename, fileUtil.readFile(policyFilename)), cmd2.toArray(new String[0]))[0];
 		fileUtil.writeFile(policyIdFilename, policyId);
 
 		return new Policy(policyString, policyId);
 	}
 
-	public String mint(List<Utxo> Utxo, TransactionOutputs transactionOutputs, JSONObject metaData, Address paymentAddress, Policy policy, String changeAddress) throws Exception {
-		try {
+	public String mint(List<Utxo> transactionInputs, TransactionOutputs transactionOutputs, JSONObject metaData, Address paymentAddress, Policy policy, String changeAddress) throws Exception {
+		Transaction tx = buildTransaction(transactionInputs, transactionOutputs, metaData != null ? metaData.toString(3) : null, policy, changeAddress);
 
-			String txUnsignedFilename = buildTransaction(Utxo, transactionOutputs, metaData, policy, changeAddress);
-			String signedTxFilename = signTransaction(txUnsignedFilename, paymentAddress, policy != null);
-			String txId = getTransactionId(signedTxFilename);
-			submitTransaction(signedTxFilename);
-			fileUtil.removeFile(txUnsignedFilename);
-			fileUtil.removeFile(signedTxFilename);
-			return txId;
-
-		} catch (Exception e) {
-			String message = StringUtils.trimToEmpty(e.getMessage());
-			if (message.contains("BadInputsUTxO")) {
-				throw new UnprocessedTransactionsException(message);
-			} else if (message.contains("OutsideValidityIntervalUTxO")) {
-				throw new PolicyExpiredException(message);
-			} else if (message.contains("Non-Ada assets are unbalanced")) {
-				throw new UnexpectedTokensException(message);
-			} else if (message.contains("OutputTooSmallUTxO")) {
-				throw new OutputTooSmallUTxOException(message);
-			} else {
-				throw e;
-			}
+		if (policy != null) {
+			signTransaction(tx, paymentAddress, createPolicyAddress());
+		} else {
+			signTransaction(tx, paymentAddress);
 		}
-
+		String txId = getTxId(tx);
+		submitTransaction(tx);
+		return txId;
 	}
 
-	private String buildTransaction(List<Utxo> utxos, TransactionOutputs transactionOutputs, JSONObject metaData, Policy policy, String changeAddress) throws Exception {
+	public Transaction buildTransaction(List<Utxo> transactionInputs, TransactionOutputs transactionOutputs, String metaData, Policy policy, String changeAddress) throws Exception {
 
+		Map<String, String> inputFiles = new HashMap<>();
 		ArrayList<String> cmd = new ArrayList<String>();
-		cmd.addAll(List.of(cardanoCliCmd));
 
 		cmd.add("transaction");
 		cmd.add("build");
@@ -276,9 +265,9 @@ public class CardanoCli {
 		cmd.add(changeAddress);
 
 		cmd.add("--witness-override");
-		cmd.add("2");
+		cmd.add(policy == null ? "1" : "2");
 
-		for (Utxo utxo : utxos) {
+		for (Utxo utxo : transactionInputs) {
 			cmd.add("--tx-in");
 			cmd.add(utxo.getTxHash() + "#" + utxo.getTxIndex());
 		}
@@ -288,37 +277,48 @@ public class CardanoCli {
 			cmd.add(a);
 		}
 
+		List<String> mints = new ArrayList<String>();
+
 		Set<String> outputAssets = transactionOutputs.getOutputs().values()
 				.stream()
 				.flatMap(a -> a.keySet().stream())
 				.filter(e -> !StringUtils.isBlank(e))
 				.collect(Collectors.toSet());
-		List<String> mints = new ArrayList<String>();
-		for (String assetEntry : outputAssets) {
-			long inputAmount = utxos.stream().filter(utxo -> Objects.equals(formatCurrency(utxo.getMaPolicyId(), utxo.getMaName()), assetEntry)).mapToLong(i -> i.getValue()).sum();
+		Set<String> inputAssets = transactionInputs
+				.stream()
+				.filter(e -> e.getMaPolicyId() != null)
+				.map(e -> formatCurrency(e.getMaPolicyId(), e.getMaName()))
+				.collect(Collectors.toSet());
+		Set<String> allAssets = new HashSet<>();
+		allAssets.addAll(outputAssets);
+		allAssets.addAll(inputAssets);
+		for (String assetEntry : allAssets) {
+			long inputAmount = transactionInputs.stream().filter(i -> Objects.equals(formatCurrency(i.getMaPolicyId(), i.getMaName()), assetEntry)).mapToLong(i -> i.getValue()).sum();
 			long outputAmount = transactionOutputs.getOutputs().values().stream().flatMap(a -> a.entrySet().stream()).filter(e -> Objects.equals(e.getKey(), assetEntry)).mapToLong(e -> e.getValue()).sum();
 			long needed = outputAmount - inputAmount;
-			if (needed > 0) {
+			if (needed != 0) {
 				mints.add(String.format("%d %s", needed, assetEntry));
 			}
 		}
+
 		if (mints.size() > 0) {
+			String policyScriptFilename = filename("script");
 			cmd.add("--mint");
 			cmd.add(StringUtils.join(mints, "+"));
 			cmd.add("--minting-script-file");
-			cmd.add(prefixFilename(POLICY_SCRIPT_FILENAME));
+			cmd.add(policyScriptFilename);
+			inputFiles.put(policyScriptFilename, policy.getPolicy());
 		}
 
-		String metadataFilename = prefixFilename(UUID.randomUUID().toString() + "." + TRANSACTION_METADATA_JSON_FILENAME);
-		String txUnsignedFilename = prefixFilename(UUID.randomUUID().toString() + "." + TRANSACTION_UNSIGNED_FILENAME);
-
 		if (metaData != null) {
-			fileUtil.writeFile(metadataFilename, metaData.toString(3));
+			String metadataFilename = filename("metadata");
 			cmd.add("--json-metadata-no-schema");
 			cmd.add("--metadata-json-file");
 			cmd.add(metadataFilename);
+			inputFiles.put(metadataFilename, metaData);
 		}
 
+		String txUnsignedFilename = filename("unsigned");
 		cmd.add("--out-file");
 		cmd.add(txUnsignedFilename);
 
@@ -328,87 +328,116 @@ public class CardanoCli {
 			cmd.add("" + maxSlot);
 		}
 
-		cmd.addAll(List.of(networkMagicArgs));
-
+		String[] txResponse;
 		try {
-			ProcessUtil.runCommand(cmd.toArray(new String[0]));
+			txResponse = cardanoCliDockerBridge.requestCardanoCli(inputFiles, cmd.toArray(new String[0]), txUnsignedFilename);
 		} catch (Exception e) {
+			log.warn("first mint attempt failed: {}", e.getMessage());
 			String message = StringUtils.trimToEmpty(e.getMessage());
 			if (message.contains("(change output)")) {
 				Matcher matcher = lovelacePattern.matcher(e.getMessage());
 				matcher.find();
 				Long missingFunds = Long.valueOf(matcher.group(1));
 				transactionOutputs.add(transactionOutputs.getOutputs().keySet().iterator().next(), "", missingFunds);
-				return buildTransaction(utxos, transactionOutputs, metaData, policy, changeAddress);
+				return buildTransaction(transactionInputs, transactionOutputs, metaData, policy, changeAddress);
+			} else if (message.contains("The net balance of the transaction is negative")) {
+				Matcher matcher = missingLovelacePattern.matcher(e.getMessage());
+				matcher.find();
+				long missingFunds = Long.parseLong(matcher.group(1));
+				throw new MissingLovelaceException(missingFunds, e.getMessage(), e);
 			} else {
 				throw e;
 			}
 		}
 
+		Transaction transaction = new Transaction();
+		String[] feeStringChunks = txResponse[0].split(" ");
+		transaction.setFee(Long.valueOf(feeStringChunks[feeStringChunks.length - 1]));
+		transaction.setInputs(transactionInputs.toString());
+		transaction.setOutputs(transactionOutputs.toString());
 		if (metaData != null) {
-			fileUtil.removeFile(metadataFilename);
+			transaction.setMetaDataJson(metaData);
 		}
+		transaction.setRawData(txResponse[1]);
 
-		return txUnsignedFilename;
+		String txId = getTxId(transaction);
+		transaction.setTxId(txId);
+
+		return transaction;
 	}
 
-	private String signTransaction(String txUnsignedFilename, Address paymentAddress, boolean signWithPolicy) throws Exception {
+	private void signTransaction(Transaction mintTransaction, Address... addresses) throws Exception {
 
-		String skeyFilename = prefixFilename(UUID.randomUUID().toString() + "." + PAYMENT_SKEY_FILENAME);
-		String txSignedFilename = prefixFilename(UUID.randomUUID().toString() + "." + TRANSACTION_UNSIGNED_FILENAME);
+		Map<String, String> inputFiles = new HashMap<>();
 
-		fileUtil.writeFile(skeyFilename, paymentAddress.getSkey());
+		List<String> skeyFilenames = new ArrayList<String>();
+		for (Address address : addresses) {
+			String skeyFilename = filename("skey");
+			skeyFilenames.add(skeyFilename);
+			inputFiles.put(skeyFilename, address.getSkey());
+		}
+
+		String rawFilename = filename("raw");
+		inputFiles.put(rawFilename, mintTransaction.getRawData());
+
+		String signedFilename = filename("signed");
 
 		ArrayList<String> cmd = new ArrayList<String>();
-		cmd.addAll(List.of(cardanoCliCmd));
 		cmd.add("transaction");
 		cmd.add("sign");
 
-		cmd.add("--signing-key-file");
-		cmd.add(skeyFilename);
-
-		if (signWithPolicy) {
+		for (String skeyFilename : skeyFilenames) {
 			cmd.add("--signing-key-file");
-			cmd.add(prefixFilename(POLICY_SKEY_FILENAME));
+			cmd.add(skeyFilename);
 		}
 
-		cmd.addAll(List.of(networkMagicArgs));
-
 		cmd.add("--tx-body-file");
-		cmd.add(txUnsignedFilename);
+		cmd.add(rawFilename);
 
 		cmd.add("--out-file");
-		cmd.add(txSignedFilename);
+		cmd.add(signedFilename);
 
-		ProcessUtil.runCommand(cmd.toArray(new String[0]));
+		String[] output = cardanoCliDockerBridge.requestCardanoCliNomagic(inputFiles, cmd.toArray(new String[0]), signedFilename);
 
-		fileUtil.removeFile(skeyFilename);
-		return txSignedFilename;
+		mintTransaction.setSignedData(output[1]);
 
+		String cborHex = new JSONObject(mintTransaction.getSignedData()).getString("cborHex");
+		mintTransaction.setTxSize((long) (cborHex.length() / 2));
 	}
 
-	private void submitTransaction(String signedTxFilename) throws Exception {
-		ArrayList<String> cmd = new ArrayList<String>();
-		cmd.addAll(List.of(cardanoCliCmd));
-		cmd.add("transaction");
-		cmd.add("submit");
+	public void submitTransaction(Transaction mintTransaction) throws Exception {
+		String filename = filename("signed");
+		try {
 
-		cmd.add("--tx-file");
-		cmd.add(signedTxFilename);
+			ArrayList<String> cmd = new ArrayList<String>();
+			cmd.add("transaction");
+			cmd.add("submit");
 
-		cmd.addAll(List.of(networkMagicArgs));
+			cmd.add("--tx-file");
+			cmd.add(filename);
 
-		ProcessUtil.runCommand(cmd.toArray(new String[0]));
+			cardanoCliDockerBridge.requestCardanoCli(Map.of(filename, mintTransaction.getSignedData()), cmd.toArray(new String[0]));
+
+		} catch (Exception e) {
+			String message = StringUtils.defaultIfEmpty(e.getMessage(), "");
+			if (message.contains("BadInputsUTxO")) {
+				throw new Exception("You have unprocessed transactions, please wait a minute.");
+			} else if (message.contains("OutsideValidityIntervalUTxO")) {
+				throw new Exception("You policy has expired. Confirm to generate a new one.");
+			} else {
+				throw e;
+			}
+		}
 	}
 
-	private String getTransactionId(String signedTxFilename) throws Exception {
+	private String getTxId(Transaction mintTransaction) throws Exception {
+		String filename = filename("raw");
 		ArrayList<String> cmd = new ArrayList<String>();
-		cmd.addAll(List.of(cardanoCliCmd));
 		cmd.add("transaction");
 		cmd.add("txid");
-		cmd.add("--tx-file");
-		cmd.add(signedTxFilename);
-		String txId = ProcessUtil.runCommand(cmd.toArray(new String[0]));
+		cmd.add("--tx-body-file");
+		cmd.add(filename);
+		String txId = cardanoCliDockerBridge.requestCardanoCliNomagic(Map.of(filename, mintTransaction.getRawData()), cmd.toArray(new String[0]))[0];
 		return txId;
 	}
 
@@ -418,6 +447,14 @@ public class CardanoCli {
 		} else {
 			return policyId + "." + assetNameHex;
 		}
+	}
+
+	private String filename(String ext) {
+		return UUID.randomUUID().toString() + "." + ext;
+	}
+
+	private String prefixFilename(String filename) {
+		return network + "." + filename;
 	}
 
 }

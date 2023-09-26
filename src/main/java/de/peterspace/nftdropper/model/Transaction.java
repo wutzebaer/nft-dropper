@@ -1,8 +1,8 @@
 package de.peterspace.nftdropper.model;
 
-import lombok.Value;
+import lombok.Data;
 
-@Value
+@Data
 public class Transaction {
 	private String signedData;
 	private String rawData;

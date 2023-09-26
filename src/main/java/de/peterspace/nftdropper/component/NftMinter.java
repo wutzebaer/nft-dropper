@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
+import org.apache.hc.client5.http.utils.Hex;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -73,9 +74,6 @@ public class NftMinter {
 
 	@Value("${token.maxAmount}")
 	private int tokenMaxAmount;
-
-	@Value("${donate}")
-	private boolean donate;
 
 	@Value("${santo.riverDigging.policyId}")
 	private String santoRiverDiggingPolicyId;
@@ -129,7 +127,6 @@ public class NftMinter {
 		log.info("Policy Id: {}", policy.getPolicyId());
 		log.info("Token Price: {}", tokenPrice);
 		log.info("Tier Prices: {}", tierPrices);
-		log.info("Donate: {}", donate);
 	}
 
 	private long findTierPrice(long ada) {
@@ -227,7 +224,7 @@ public class NftMinter {
 		taskExecutor.execute(() -> {
 			try {
 
-				String buyerAddress = utxos.get(0).getSourceAddress();
+				String buyerAddress = cardanoDbSyncClient.getReturnAddress(utxos.get(0).getSourceAddress());
 
 				log.info("selling {} tokens to {} : {}", tokens.size(), buyerAddress, tokens);
 
@@ -235,12 +232,12 @@ public class NftMinter {
 
 				// send tokens
 				for (TokenData token : tokens) {
-					transactionOutputs.add(buyerAddress, formatCurrency(policy.getPolicyId(), token.assetName()), 1);
+					transactionOutputs.add(buyerAddress, formatCurrency(policy.getPolicyId(), Hex.encodeHexString(token.assetName().getBytes())), 1);
 				}
 
 				// return input tokens to seller
-				if (utxos.stream().filter(e -> !e.getMaPolicyId().isEmpty()).map(f -> f.getMaPolicyId()).distinct().count() > 0) {
-					utxos.stream().filter(e -> !e.getMaPolicyId().isEmpty()).forEach(utxo -> {
+				if (utxos.stream().filter(e -> !StringUtils.isBlank(e.getMaPolicyId())).map(f -> f.getMaPolicyId()).distinct().count() > 0) {
+					utxos.stream().filter(e -> !StringUtils.isBlank(e.getMaPolicyId())).forEach(utxo -> {
 						transactionOutputs.add(buyerAddress, formatCurrency(utxo.getMaPolicyId(), utxo.getMaName()), utxo.getValue());
 					});
 				}
@@ -260,10 +257,6 @@ public class NftMinter {
 				// return change to buyer
 				long change = calculateAvailableFunds(utxos) - lockedFunds - totalPrice;
 				transactionOutputs.add(buyerAddress, "", change);
-
-				if (donate) {
-					transactionOutputs.add(cardanoNode.getDonationAddress(), "", 1_000_000);
-				}
 
 				// build metadata
 				JSONObject policyMetadata = new JSONObject();
@@ -308,8 +301,8 @@ public class NftMinter {
 
 				TransactionOutputs transactionOutputs = new TransactionOutputs();
 
-				if (utxos.stream().filter(utxo -> !utxo.getMaPolicyId().isEmpty()).map(f -> f.getMaPolicyId()).distinct().count() > 0) {
-					utxos.stream().filter(utxo -> !utxo.getMaPolicyId().isEmpty()).forEach(utxo -> {
+				if (utxos.stream().filter(utxo -> !StringUtils.isBlank(utxo.getMaPolicyId())).map(f -> f.getMaPolicyId()).distinct().count() > 0) {
+					utxos.stream().filter(utxo -> !StringUtils.isBlank(utxo.getMaPolicyId())).forEach(utxo -> {
 						transactionOutputs.add(buyerAddress, formatCurrency(utxo.getMaPolicyId(), utxo.getMaName()), utxo.getValue());
 					});
 				}
@@ -326,21 +319,21 @@ public class NftMinter {
 	}
 
 	private long calculateAvailableFunds(List<Utxo> Utxo) {
-		return Utxo.stream().filter(e -> e.getMaPolicyId().isEmpty()).mapToLong(e -> e.getValue()).sum();
+		return Utxo.stream().filter(e -> StringUtils.isBlank(e.getMaPolicyId())).mapToLong(e -> e.getValue()).sum();
 	}
 
 	private long calculateLockedFunds(List<Utxo> utxos) throws Exception {
 
 		if (utxos.stream()
-				.filter(s -> !s.getMaPolicyId().isBlank())
-				.filter(s -> !s.getMaPolicyId().equals(santoRiverDiggingPolicyId))
+				.filter(s -> !StringUtils.isBlank(s.getMaPolicyId()))
+				.filter(s -> !Objects.equals(s.getMaPolicyId(), santoRiverDiggingPolicyId))
 				.findAny().isEmpty()) {
 			return 0;
 		}
 
 		String addressValue = utxos.get(0).getSourceAddress() + " " + utxos.stream()
-				.filter(utxo -> !utxo.getMaPolicyId().isBlank())
-				.filter(utxo -> !utxo.getMaPolicyId().equals(santoRiverDiggingPolicyId))
+				.filter(utxo -> !StringUtils.isBlank(utxo.getMaPolicyId()))
+				.filter(utxo -> !Objects.equals(utxo.getMaPolicyId(), santoRiverDiggingPolicyId))
 				.map(utxo -> (utxo.getValue() + " " + formatCurrency(utxo.getMaPolicyId(), utxo.getMaName())).trim())
 				.collect(Collectors.joining("+"));
 
