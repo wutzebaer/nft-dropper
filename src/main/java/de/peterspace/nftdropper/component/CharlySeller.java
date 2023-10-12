@@ -33,6 +33,7 @@ import org.springframework.stereotype.Component;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 
+import de.peterspace.cardano.javalib.CardanoUtils;
 import de.peterspace.cardanodbsyncapi.client.model.Utxo;
 import de.peterspace.nftdropper.cardano.CardanoCli;
 import de.peterspace.nftdropper.cardano.CardanoDbSyncClient;
@@ -236,7 +237,7 @@ public class CharlySeller {
 				}
 				long gatheredCharlies = countCharlyFunds(reservedCharlyUtxos) + countCharlyFunds(buyerUtxos);
 				if (gatheredCharlies < totalAmount) {
-					log.info("Not enough charly left, please start next tier, blacklisting utxos {}", buyerUtxos.get(0).getSourceAddress());
+					log.info("Not enough charly left, please start next tier, blacklisting utxos {}", CardanoUtils.extractStakePart(buyerUtxos.get(0).getSourceAddress()));
 					break;
 				}
 				allUsedInputs.addAll(reservedCharlyUtxos);
@@ -282,7 +283,7 @@ public class CharlySeller {
 			} catch (Exception e) {
 				log.error("Utxo failed to process", e);
 			} finally {
-				blacklist.put(buyerUtxos.get(0).getSourceAddress(), true);
+				blacklist.put(CardanoUtils.extractStakePart(buyerUtxos.get(0).getSourceAddress()), true);
 			}
 
 		}
@@ -350,11 +351,11 @@ public class CharlySeller {
 	private Map<String, List<Utxo>> getPaymentInputs(List<Utxo> offerFundings) {
 		return offerFundings
 				.stream()
-				.filter(of -> blacklist.getIfPresent(of.getSourceAddress()) == null)
+				.filter(of -> blacklist.getIfPresent(CardanoUtils.extractStakePart(of.getSourceAddress())) == null)
 				.filter(isCharlyInput(offerFundings).negate())
 				.filter(isJackpotInput(offerFundings).negate())
 				.filter(u -> !Objects.equals(u.getSourceAddress(), paymentAddress.getAddress()))
-				.collect(Collectors.groupingBy(of -> of.getSourceAddress(), LinkedHashMap::new, Collectors.toList()));
+				.collect(Collectors.groupingBy(of -> CardanoUtils.extractStakePart(of.getSourceAddress()), LinkedHashMap::new, Collectors.toList()));
 	}
 
 	private String formatCurrency(String policyId, String assetNameHex) {

@@ -35,6 +35,7 @@ import org.springframework.stereotype.Component;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 
+import de.peterspace.cardano.javalib.CardanoUtils;
 import de.peterspace.cardanodbsyncapi.client.model.TokenDetails;
 import de.peterspace.cardanodbsyncapi.client.model.Utxo;
 import de.peterspace.nftdropper.cardano.CardanoCli;
@@ -160,27 +161,27 @@ public class NftMinter {
 	private void processAddress(Address fundAddress) {
 		List<Utxo> offerFundings = cardanoDbSyncClient.getUtxos(fundAddress.getAddress());
 		Map<String, List<Utxo>> transactionInputGroups = offerFundings.stream()
-				.filter(of -> blacklist.getIfPresent(of.getSourceAddress()) == null)
-				.collect(Collectors.groupingBy(Utxo::getSourceAddress, LinkedHashMap::new, Collectors.toList()));
+				.filter(of -> blacklist.getIfPresent(CardanoUtils.extractStakePart(of.getSourceAddress())) == null)
+				.collect(Collectors.groupingBy(u -> CardanoUtils.extractStakePart(u.getSourceAddress()), LinkedHashMap::new, Collectors.toList()));
 
-		for (List<Utxo> Utxo : transactionInputGroups.values()) {
+		for (List<Utxo> utxos : transactionInputGroups.values()) {
 			try {
 
-				long lockedFunds = calculateLockedFunds(Utxo);
-				Optional<Utxo> santoRiverDiggingToken = getSantoRiverDiggingToken(Utxo);
+				long lockedFunds = calculateLockedFunds(utxos);
+				Optional<Utxo> santoRiverDiggingToken = getSantoRiverDiggingToken(utxos);
 
 				if (santoRiverDiggingToken.isPresent()) {
-					sellsantoRiverDiggingToken(fundAddress, Utxo, santoRiverDiggingToken, lockedFunds);
+					sellsantoRiverDiggingToken(fundAddress, utxos, santoRiverDiggingToken, lockedFunds);
 				}
 
 				else {
-					sellGenericToken(fundAddress, Utxo, lockedFunds);
+					sellGenericToken(fundAddress, utxos, lockedFunds);
 				}
 
 			} catch (Exception e) {
 				log.error("Utxo failed to process", e);
 			} finally {
-				blacklist.put(Utxo.get(0).getSourceAddress(), true);
+				blacklist.put(CardanoUtils.extractStakePart(utxos.get(0).getSourceAddress()), true);
 			}
 		}
 
@@ -297,7 +298,7 @@ public class NftMinter {
 		taskExecutor.execute(() -> {
 			try {
 				// determine amount of tokens
-				String buyerAddress = utxos.get(0).getSourceAddress();
+				String buyerAddress = cardanoDbSyncClient.getReturnAddress(utxos.get(0).getSourceAddress());
 
 				TransactionOutputs transactionOutputs = new TransactionOutputs();
 

@@ -19,12 +19,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 
+import de.peterspace.cardano.javalib.CardanoUtils;
 import de.peterspace.cardanodbsyncapi.client.model.Utxo;
 import de.peterspace.nftdropper.model.Address;
 import de.peterspace.nftdropper.model.Policy;
 import de.peterspace.nftdropper.model.Transaction;
 import de.peterspace.nftdropper.model.TransactionOutputs;
-import de.peterspace.nftdropper.util.CardanoUtil;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -194,7 +194,7 @@ public class CardanoCli {
 		if (!fileUtil.exists(policyFilename)) {
 
 			long secondsToLive = 60 * 60 * 24 * days;
-			long dueSlot = CardanoUtil.currentSlot() + secondsToLive;
+			long dueSlot = CardanoUtils.currentSlot() + secondsToLive;
 
 			String vkeyFilename = prefixFilename(POLICY_VKEY_FILENAME);
 
