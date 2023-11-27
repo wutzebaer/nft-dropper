@@ -82,7 +82,7 @@ public class HunterService {
 
 	@Scheduled(cron = "* * * * * *")
 	public void checkEnd() {
-		if (Instant.now().isAfter(hunterEndTimestamp) && !topList.values().stream().anyMatch(r -> r.getRank() > 0)) {
+		if (Instant.now().isAfter(hunterEndTimestamp) && !topList.isEmpty() && !topList.values().stream().anyMatch(r -> r.getRank() > 0)) {
 			log.info("Setting Ranks");
 			ArrayList<HunterRow> rows = new ArrayList<>(topList.values());
 			rows.sort(Comparator.comparingLong(r -> r.getCount()));
