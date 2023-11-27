@@ -42,7 +42,7 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
   AccountStatementRow.JSON_PROPERTY_SUM,
   AccountStatementRow.JSON_PROPERTY_OPERATIONS
 })
-@jakarta.annotation.Generated(value = "org.openapitools.codegen.languages.JavaClientCodegen", date = "2023-09-25T16:31:10.010729500+02:00[Europe/Berlin]")
+@jakarta.annotation.Generated(value = "org.openapitools.codegen.languages.JavaClientCodegen", date = "2023-11-27T16:14:58.783574800+01:00[Europe/Berlin]")
 public class AccountStatementRow {
   public static final String JSON_PROPERTY_TIMESTAMP = "timestamp";
   private OffsetDateTime timestamp;

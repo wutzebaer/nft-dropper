@@ -27,9 +27,11 @@ import de.peterspace.cardanodbsyncapi.client.model.OwnerInfo;
 import de.peterspace.cardanodbsyncapi.client.model.TokenListItem;
 import de.peterspace.nftdropper.cardano.CardanoCli;
 import de.peterspace.nftdropper.cardano.CardanoDbSyncClient;
+import de.peterspace.nftdropper.component.HunterService;
 import de.peterspace.nftdropper.component.NftMinter;
 import de.peterspace.nftdropper.component.NftSupplier;
 import de.peterspace.nftdropper.model.Address;
+import de.peterspace.nftdropper.model.HunterRow;
 import de.peterspace.nftdropper.repository.AddressRepository;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -54,6 +56,7 @@ public class RestInterface {
 	private final NftMinter nftMinter;
 	private final AddressRepository addressRepository;
 	private final CardanoDbSyncClient cardanoDbSyncClient;
+	private final HunterService hunterService;
 
 	@GetMapping("address")
 	public String getAddress() {
@@ -122,6 +125,11 @@ public class RestInterface {
 	@GetMapping("currentCharlyHolders")
 	public List<OwnerInfo> getCurrentCharlyHolders() {
 		return cardanoDbSyncClient.getCurrentCharlyHolders();
+	}
+
+	@GetMapping("hunterRows")
+	public List<HunterRow> getCurrentHunterRows() {
+		return hunterService.getRows();
 	}
 
 }

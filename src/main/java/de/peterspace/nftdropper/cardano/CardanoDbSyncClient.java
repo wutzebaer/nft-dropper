@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import de.peterspace.cardanodbsyncapi.client.ApiClient;
 import de.peterspace.cardanodbsyncapi.client.RestHandlerApi;
 import de.peterspace.cardanodbsyncapi.client.model.OwnerInfo;
+import de.peterspace.cardanodbsyncapi.client.model.StakeAddress;
 import de.peterspace.cardanodbsyncapi.client.model.TokenDetails;
 import de.peterspace.cardanodbsyncapi.client.model.TokenListItem;
 import de.peterspace.cardanodbsyncapi.client.model.Utxo;
@@ -38,6 +39,10 @@ public class CardanoDbSyncClient {
 
 	public String getReturnAddress(String stakeAddress) {
 		return restHandlerApi.getReturnAddress(stakeAddress).getAddress();
+	}
+
+	public List<String> getHandles(String stakeAddress) {
+		return restHandlerApi.getHandles(stakeAddress).stream().map(StakeAddress::getAddress).toList();
 	}
 
 	public String getStakeAddress(String address) {

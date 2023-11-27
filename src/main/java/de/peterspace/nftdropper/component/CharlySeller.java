@@ -62,10 +62,23 @@ public class CharlySeller {
 	}
 
 	private Map<Integer, JackpotCoin> jackpot = Map.ofEntries(
-			entry(100, new JackpotCoin("CHARLYSGOLDENRUSH0006", 0l)),
-			entry(200, new JackpotCoin("CHARLYSGOLDENRUSH0005", 0l)),
-			entry(900, new JackpotCoin("CHARLYSGOLDENRUSH0004", 0l)),
-			entry(1000, new JackpotCoin("CHARLYSGOLDENRUSH0003", 0l)));
+			entry(57, new JackpotCoin("CopperJackpotCoin024", 20000000l)),
+			entry(114, new JackpotCoin("CopperJackpotCoin025", 20000000l)),
+			entry(171, new JackpotCoin("CopperJackpotCoin026", 20000000l)),
+			entry(228, new JackpotCoin("CopperJackpotCoin027", 20000000l)),
+			entry(285, new JackpotCoin("CopperJackpotCoin027", 20000000l)),
+			entry(342, new JackpotCoin("SilverJackpotCoin019", 40000000l)),
+			entry(399, new JackpotCoin("SilverJackpotCoin020", 40000000l)),
+			entry(456, new JackpotCoin("CopperJackpotCoin029", 20000000l)),
+			entry(513, new JackpotCoin("CopperJackpotCoin030", 20000000l)),
+			entry(570, new JackpotCoin("SilverJackpotCoin021", 40000000l)),
+			entry(627, new JackpotCoin("CopperJackpotCoin031", 20000000l)),
+			entry(684, new JackpotCoin("CopperJackpotCoin032", 20000000l)),
+			entry(741, new JackpotCoin("SilverJackpotCoin022", 40000000l)),
+			entry(798, new JackpotCoin("GoldJackpotCoin018", 70000000l)),
+			entry(855, new JackpotCoin("CopperJackpotCoin033", 20000000l)),
+			entry(912, new JackpotCoin("SilverJackpotCoin023", 40000000l)),
+			entry(969, new JackpotCoin("CopperJackpotCoin034", 20000000l)));
 
 	private final SecureRandom sr = new SecureRandom();
 
@@ -92,6 +105,7 @@ public class CharlySeller {
 	private final CardanoCli cardanoCli;
 	private final CardanoDbSyncClient cardanoDbSyncClient;
 	private final CharlyJackpotCounterRepository charlyJackpotCounterRepository;
+	private final HunterService hunterService;
 
 	private CharlyJackpotCounter charlyJackpotCounter;
 
@@ -167,6 +181,7 @@ public class CharlySeller {
 
 			try {
 				final String buyerAddress = cardanoDbSyncClient.getReturnAddress(buyerUtxos.get(0).getSourceAddress());
+				final String stakeAddress = cardanoDbSyncClient.getStakeAddress(buyerAddress);
 
 				long lockedFunds = calculateLockedFunds(buyerUtxos);
 				long totalFunds = calculateAvailableFunds(buyerUtxos);
@@ -206,13 +221,13 @@ public class CharlySeller {
 
 							// send nft and jackpot charlies
 							transactionOutputs.add(buyerAddress + "#jackpot", formatCurrency(charlyTokenPolicyId, charlyTokenAssetName), jackpotCoin.getCharlyTokens());
-							transactionOutputs.add(buyerAddress + "#jackpot", formatCurrency(jackpotPolicy, jackpotCoin.getAssetName()), 1);
+							transactionOutputs.add(buyerAddress + "#jackpot", formatCurrency(jackpotPolicy, Hex.encodeHexString(jackpotCoin.getAssetName().getBytes())), 1);
 
 							// increae amount to gaster
 							totalAmount += jackpotCoin.getCharlyTokens();
 
 							// return other nfts
-							jackpotInputs.removeIf(in -> Objects.equals(in.getMaName(), jackpotCoin.getAssetName()));
+							jackpotInputs.removeIf(in -> Objects.equals(in.getMaName(), Hex.encodeHexString(jackpotCoin.getAssetName().getBytes())));
 							jackpotInputs.removeIf(in -> StringUtils.isBlank(in.getMaPolicyId()));
 							for (Utxo jackpotCoinInput : jackpotInputs) {
 								transactionOutputs.add(paymentAddress.getAddress() + "#jackpot", formatCurrency(jackpotCoinInput.getMaPolicyId(), jackpotCoinInput.getMaName()), jackpotCoinInput.getValue());
@@ -277,6 +292,8 @@ public class CharlySeller {
 				for (Utxo usedInput : allUsedInputs) {
 					blacklistCharly.put(usedInput.getTxHash() + "#" + usedInput.getTxIndex(), true);
 				}
+
+				hunterService.addMint(stakeAddress, amount);
 
 				log.info("Successfully sold {} , txid: {}", randomAmounts, txId);
 
