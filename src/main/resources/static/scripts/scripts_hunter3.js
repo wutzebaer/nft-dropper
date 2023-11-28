@@ -2,6 +2,9 @@ function updateHunt() {
 	$.ajax({
 		url: "api/hunterRows",
 		success: function(result) {
+
+			result = result.sort((r1, r2) => (r2.count - r1.count) || (r2.rank - r1.rank));
+
 			let place = 0;
 
 			if (result.length) {
@@ -13,15 +16,16 @@ function updateHunt() {
 				$('.hunter-lane-header').hide();
 			}
 
+
 			let maxTransactions = Math.max(...result.map(r => r.count));
-			$('#half-amount').text(maxTransactions / 2)
-			$('#max-amount').text(maxTransactions);
+			$('#half-amount').text((maxTransactions / 2).toLocaleString())
+			$('#max-amount').text(maxTransactions.toLocaleString());
 
 			for (row of result) {
 				if ($('#' + row.stakeAddress).length) {
 					$('#' + row.stakeAddress).find('.hunter').css('left', row.count / maxTransactions * 100 + '%');
 					$('#' + row.stakeAddress).data('place', place);
-					$('#' + row.stakeAddress).find('.hunter .bottom').text(row.count);
+					$('#' + row.stakeAddress).find('.hunter .bottom').text(row.count.toLocaleString());
 
 					let hunter = $('#' + row.stakeAddress).find('.hunter');
 					if (row.rank) {
@@ -38,14 +42,14 @@ function updateHunt() {
 				} else {
 					$('.hunter-field').append(
 						`
-						<div class="hunter-lane" id="${row.stakeAddress}" data-place="${place}">
-							<div class="hunter" style="left: 0%">
-								<span class="top"><a target="_blank" href="https://cardanoscan.io/search?filter=all&value=${row.stakeAddress}">${row.handle || row.stakeAddress}</a></span>
-								<img src="/images/walking_.gif">
-								<span class="bottom">${row.count}</span>
-							</div>
-						</div>
-						`
+            <div class="hunter-lane" id="${row.stakeAddress}" data-place="${place}">
+              <div class="hunter" style="left: 0%">
+                <span class="top"><a target="_blank" href="https://cardanoscan.io/search?filter=all&value=${row.stakeAddress}">${row.handle || row.stakeAddress}</a></span>
+                <img src="/images/walking_.gif">
+                <span class="bottom">${row.count}</span>
+              </div>
+            </div>
+            `
 					);
 				}
 				place++;

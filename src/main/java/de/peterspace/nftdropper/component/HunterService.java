@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -59,7 +60,7 @@ public class HunterService {
 		topList = hunterRowRepository.findAll().stream().collect(Collectors.toMap(HunterRow::getStakeAddress, Function.identity()));
 	}
 
-	public void addMint(String stakeAddress, Integer count) {
+	public void addMint(String stakeAddress, Long count) {
 		if (Instant.now().isBefore(hunterStartTimestamp)) {
 			log.info("Ignoring Transaction, hunt not started yet");
 			return;
@@ -82,11 +83,11 @@ public class HunterService {
 
 	@Scheduled(cron = "* * * * * *")
 	public void checkEnd() {
-		if (Instant.now().isAfter(hunterEndTimestamp) && !topList.isEmpty() && !topList.values().stream().anyMatch(r -> r.getRank() > 0)) {
+		if (Instant.now().isAfter(hunterEndTimestamp) && !topList.isEmpty() && !topList.values().stream().map(HunterRow::getRank).filter(Objects::nonNull).anyMatch(r -> r > 0)) {
 			log.info("Setting Ranks");
 			ArrayList<HunterRow> rows = new ArrayList<>(topList.values());
-			rows.sort(Comparator.comparingLong(r -> r.getCount()));
-			for (int i = 1; i <= rows.size(); i++) {
+			rows.sort(Comparator.comparingLong(HunterRow::getCount).reversed());
+			for (int i = 1; i <= Math.min(rows.size(), 5); i++) {
 				rows.get(i - 1).setRank(i);
 			}
 			hunterRowRepository.saveAll(rows);

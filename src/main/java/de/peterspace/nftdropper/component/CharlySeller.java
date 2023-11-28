@@ -293,7 +293,7 @@ public class CharlySeller {
 					blacklistCharly.put(usedInput.getTxHash() + "#" + usedInput.getTxIndex(), true);
 				}
 
-				hunterService.addMint(stakeAddress, amount);
+				hunterService.addMint(stakeAddress, totalAmount);
 
 				log.info("Successfully sold {} , txid: {}", randomAmounts, txId);
 
