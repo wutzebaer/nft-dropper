@@ -242,6 +242,10 @@ public class CharlySeller {
 					charlyJackpotCounterRepository.save(charlyJackpotCounter);
 				}
 
+				// double output
+				transactionOutputs.add(buyerAddress + "#double", formatCurrency(charlyTokenPolicyId, charlyTokenAssetName), totalAmount);
+				totalAmount *= 2;
+
 				// gather charlyToken inputs
 				List<Utxo> reservedCharlyUtxos = new ArrayList<>();
 				while (countCharlyFunds(reservedCharlyUtxos) < totalAmount && !charlyUtxos.isEmpty()) {
