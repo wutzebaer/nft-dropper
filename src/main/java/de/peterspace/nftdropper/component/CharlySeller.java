@@ -62,23 +62,14 @@ public class CharlySeller {
 	}
 
 	private Map<Integer, JackpotCoin> jackpot = Map.ofEntries(
-			entry(57, new JackpotCoin("CopperJackpotCoin024", 20000000l)),
-			entry(114, new JackpotCoin("CopperJackpotCoin025", 20000000l)),
-			entry(171, new JackpotCoin("CopperJackpotCoin026", 20000000l)),
-			entry(228, new JackpotCoin("CopperJackpotCoin027", 20000000l)),
-			entry(285, new JackpotCoin("CopperJackpotCoin027", 20000000l)),
-			entry(342, new JackpotCoin("SilverJackpotCoin019", 40000000l)),
-			entry(399, new JackpotCoin("SilverJackpotCoin020", 40000000l)),
-			entry(456, new JackpotCoin("CopperJackpotCoin029", 20000000l)),
-			entry(513, new JackpotCoin("CopperJackpotCoin030", 20000000l)),
-			entry(570, new JackpotCoin("SilverJackpotCoin021", 40000000l)),
-			entry(627, new JackpotCoin("CopperJackpotCoin031", 20000000l)),
-			entry(684, new JackpotCoin("CopperJackpotCoin032", 20000000l)),
-			entry(741, new JackpotCoin("SilverJackpotCoin022", 40000000l)),
-			entry(798, new JackpotCoin("GoldJackpotCoin018", 70000000l)),
-			entry(855, new JackpotCoin("CopperJackpotCoin033", 20000000l)),
-			entry(912, new JackpotCoin("SilverJackpotCoin023", 40000000l)),
-			entry(969, new JackpotCoin("CopperJackpotCoin034", 20000000l)));
+			entry(1900, new JackpotCoin("CopperJackpotCoin028", 20000000l)),
+			entry(2000, new JackpotCoin("CopperJackpotCoin029", 20000000l)),
+			entry(2100, new JackpotCoin("CopperJackpotCoin033", 20000000l)),
+			entry(2200, new JackpotCoin("SilverJackpotCoin022", 40000000l)),
+			entry(2201, new JackpotCoin("SilverJackpotCoin006", 0l)),
+			entry(2300, new JackpotCoin("CHARLYSGOLDENRUSH0004", 0l)),
+			entry(2400, new JackpotCoin("CHARLYSGOLDENRUSH0005", 0l)),
+			entry(2500, new JackpotCoin("CHARLYSGOLDENRUSH0006", 0l)));
 
 	private final SecureRandom sr = new SecureRandom();
 
@@ -160,7 +151,7 @@ public class CharlySeller {
 		return countCharlyFunds(utxosWithCharlyTokens);
 	}
 
-	@Scheduled(cron = "*/10 * * * * *")
+	@Scheduled(cron = "0 * * * * *")
 	public void processOffers() throws Exception {
 
 		if (StringUtils.isBlank(charlyToken)) {
