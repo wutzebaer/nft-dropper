@@ -168,6 +168,8 @@ public class CharlySeller {
 
 		final long minFunds = tokenPrice * 1_000_000;
 
+		Integer oldJackpotTxNum = charlyJackpotCounter.getCount();
+
 		for (List<Utxo> buyerUtxos : buyerUtxosGroupedByStakingAddress.values()) {
 
 			try {
@@ -294,6 +296,9 @@ public class CharlySeller {
 
 			} catch (Exception e) {
 				log.error("Utxo failed to process", e);
+				log.error("Rollback counter to {}", oldJackpotTxNum);
+				charlyJackpotCounter.setCount(oldJackpotTxNum);
+				charlyJackpotCounterRepository.save(charlyJackpotCounter);
 			} finally {
 				blacklist.put(CardanoUtils.extractStakePart(buyerUtxos.get(0).getSourceAddress()), true);
 			}
