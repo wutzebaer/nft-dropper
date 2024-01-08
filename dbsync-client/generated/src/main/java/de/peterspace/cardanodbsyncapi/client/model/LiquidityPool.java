@@ -20,46 +20,77 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.annotation.JsonValue;
+import de.peterspace.cardanodbsyncapi.client.model.Utxo;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 
 /**
- * ReturnAddress
+ * LiquidityPool
  */
 @JsonPropertyOrder({
-  ReturnAddress.JSON_PROPERTY_ADDRESS
+  LiquidityPool.JSON_PROPERTY_ASSET_A,
+  LiquidityPool.JSON_PROPERTY_ASSET_B
 })
 @jakarta.annotation.Generated(value = "org.openapitools.codegen.languages.JavaClientCodegen", date = "2024-01-08T17:32:52.207422400+01:00[Europe/Berlin]")
-public class ReturnAddress {
-  public static final String JSON_PROPERTY_ADDRESS = "address";
-  private String address;
+public class LiquidityPool {
+  public static final String JSON_PROPERTY_ASSET_A = "assetA";
+  private Utxo assetA;
 
-  public ReturnAddress() {
+  public static final String JSON_PROPERTY_ASSET_B = "assetB";
+  private Utxo assetB;
+
+  public LiquidityPool() {
   }
 
-  public ReturnAddress address(String address) {
+  public LiquidityPool assetA(Utxo assetA) {
     
-    this.address = address;
+    this.assetA = assetA;
     return this;
   }
 
    /**
-   * Get address
-   * @return address
+   * Get assetA
+   * @return assetA
   **/
   @jakarta.annotation.Nullable
-  @JsonProperty(JSON_PROPERTY_ADDRESS)
+  @JsonProperty(JSON_PROPERTY_ASSET_A)
   @JsonInclude(value = JsonInclude.Include.USE_DEFAULTS)
 
-  public String getAddress() {
-    return address;
+  public Utxo getAssetA() {
+    return assetA;
   }
 
 
-  @JsonProperty(JSON_PROPERTY_ADDRESS)
+  @JsonProperty(JSON_PROPERTY_ASSET_A)
   @JsonInclude(value = JsonInclude.Include.USE_DEFAULTS)
-  public void setAddress(String address) {
-    this.address = address;
+  public void setAssetA(Utxo assetA) {
+    this.assetA = assetA;
+  }
+
+
+  public LiquidityPool assetB(Utxo assetB) {
+    
+    this.assetB = assetB;
+    return this;
+  }
+
+   /**
+   * Get assetB
+   * @return assetB
+  **/
+  @jakarta.annotation.Nullable
+  @JsonProperty(JSON_PROPERTY_ASSET_B)
+  @JsonInclude(value = JsonInclude.Include.USE_DEFAULTS)
+
+  public Utxo getAssetB() {
+    return assetB;
+  }
+
+
+  @JsonProperty(JSON_PROPERTY_ASSET_B)
+  @JsonInclude(value = JsonInclude.Include.USE_DEFAULTS)
+  public void setAssetB(Utxo assetB) {
+    this.assetB = assetB;
   }
 
   @Override
@@ -70,20 +101,22 @@ public class ReturnAddress {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    ReturnAddress returnAddress = (ReturnAddress) o;
-    return Objects.equals(this.address, returnAddress.address);
+    LiquidityPool liquidityPool = (LiquidityPool) o;
+    return Objects.equals(this.assetA, liquidityPool.assetA) &&
+        Objects.equals(this.assetB, liquidityPool.assetB);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(address);
+    return Objects.hash(assetA, assetB);
   }
 
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append("class ReturnAddress {\n");
-    sb.append("    address: ").append(toIndentedString(address)).append("\n");
+    sb.append("class LiquidityPool {\n");
+    sb.append("    assetA: ").append(toIndentedString(assetA)).append("\n");
+    sb.append("    assetB: ").append(toIndentedString(assetB)).append("\n");
     sb.append("}");
     return sb.toString();
   }

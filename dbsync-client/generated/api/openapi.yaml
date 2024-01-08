@@ -246,7 +246,7 @@ paths:
           format: int64
           type: integer
         style: form
-      - example: d1edc4dfb4f5f7fb240239ad64a4730c2fd4744eda3c8a7d0fff1f92
+      - example: 89267e9a35153a419e1b8ffa23e511ac39ea4e3b00452e9d500f2982
         explode: true
         in: query
         name: filter
@@ -271,7 +271,7 @@ paths:
     get:
       operationId: getTokenDetails
       parameters:
-      - example: d1edc4dfb4f5f7fb240239ad64a4730c2fd4744eda3c8a7d0fff1f92
+      - example: 89267e9a35153a419e1b8ffa23e511ac39ea4e3b00452e9d500f2982
         explode: false
         in: path
         name: policyId
@@ -279,7 +279,7 @@ paths:
         schema:
           type: string
         style: simple
-      - example: 504f524b5958383835
+      - example: 436176616c6965724b696e67436861726c6573
         explode: false
         in: path
         name: assetName
@@ -379,7 +379,7 @@ paths:
     get:
       operationId: getOwners
       parameters:
-      - example: d1edc4dfb4f5f7fb240239ad64a4730c2fd4744eda3c8a7d0fff1f92
+      - example: 89267e9a35153a419e1b8ffa23e511ac39ea4e3b00452e9d500f2982
         explode: false
         in: path
         name: policyId
@@ -397,6 +397,39 @@ paths:
                 type: array
           description: OK
       summary: "Get all token owners of a policyId, values get updated twice a day"
+      tags:
+      - rest-handler
+      x-accepts: application/json
+  /cardanoDbSyncApi/minswap/{policyId}/{assetName}:
+    get:
+      operationId: getMinswapPools
+      parameters:
+      - example: 89267e9a35153a419e1b8ffa23e511ac39ea4e3b00452e9d500f2982
+        explode: false
+        in: path
+        name: policyId
+        required: true
+        schema:
+          type: string
+        style: simple
+      - example: 436176616c6965724b696e67436861726c6573
+        explode: false
+        in: path
+        name: assetName
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/LiquidityPool'
+                type: array
+          description: OK
+      summary: Get minswap pools for token
       tags:
       - rest-handler
       x-accepts: application/json
@@ -710,6 +743,30 @@ components:
       - address
       - amount
       - maNames
+      type: object
+    LiquidityPool:
+      example:
+        assetA:
+          owningAddress: owningAddress
+          maName: maName
+          sourceAddress: sourceAddress
+          maPolicyId: maPolicyId
+          txHash: txHash
+          value: 6
+          txIndex: 0
+        assetB:
+          owningAddress: owningAddress
+          maName: maName
+          sourceAddress: sourceAddress
+          maPolicyId: maPolicyId
+          txHash: txHash
+          value: 6
+          txIndex: 0
+      properties:
+        assetA:
+          $ref: '#/components/schemas/Utxo'
+        assetB:
+          $ref: '#/components/schemas/Utxo'
       type: object
     EpochStake:
       example:

@@ -5,6 +5,7 @@ import de.peterspace.cardanodbsyncapi.client.ApiClient;
 import de.peterspace.cardanodbsyncapi.client.model.AccountStatementRow;
 import de.peterspace.cardanodbsyncapi.client.model.EpochStake;
 import de.peterspace.cardanodbsyncapi.client.model.GetLastMintRequest;
+import de.peterspace.cardanodbsyncapi.client.model.LiquidityPool;
 import de.peterspace.cardanodbsyncapi.client.model.OwnerInfo;
 import de.peterspace.cardanodbsyncapi.client.model.PoolInfo;
 import de.peterspace.cardanodbsyncapi.client.model.ReturnAddress;
@@ -35,7 +36,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
-@jakarta.annotation.Generated(value = "org.openapitools.codegen.languages.JavaClientCodegen", date = "2023-11-27T16:14:58.783574800+01:00[Europe/Berlin]")
+@jakarta.annotation.Generated(value = "org.openapitools.codegen.languages.JavaClientCodegen", date = "2024-01-08T17:32:52.207422400+01:00[Europe/Berlin]")
 public class RestHandlerApi {
     private ApiClient apiClient;
 
@@ -306,6 +307,63 @@ public class RestHandlerApi {
 
         ParameterizedTypeReference<List<TokenDetails>> localReturnType = new ParameterizedTypeReference<List<TokenDetails>>() {};
         return apiClient.invokeAPI("/cardanoDbSyncApi/lastMint", HttpMethod.POST, Collections.<String, Object>emptyMap(), localVarQueryParams, localVarPostBody, localVarHeaderParams, localVarCookieParams, localVarFormParams, localVarAccept, localVarContentType, localVarAuthNames, localReturnType);
+    }
+    /**
+     * Get minswap pools for token
+     * 
+     * <p><b>200</b> - OK
+     * @param policyId  (required)
+     * @param assetName  (required)
+     * @return List&lt;LiquidityPool&gt;
+     * @throws RestClientException if an error occurs while attempting to invoke the API
+     */
+    public List<LiquidityPool> getMinswapPools(String policyId, String assetName) throws RestClientException {
+        return getMinswapPoolsWithHttpInfo(policyId, assetName).getBody();
+    }
+
+    /**
+     * Get minswap pools for token
+     * 
+     * <p><b>200</b> - OK
+     * @param policyId  (required)
+     * @param assetName  (required)
+     * @return ResponseEntity&lt;List&lt;LiquidityPool&gt;&gt;
+     * @throws RestClientException if an error occurs while attempting to invoke the API
+     */
+    public ResponseEntity<List<LiquidityPool>> getMinswapPoolsWithHttpInfo(String policyId, String assetName) throws RestClientException {
+        Object localVarPostBody = null;
+        
+        // verify the required parameter 'policyId' is set
+        if (policyId == null) {
+            throw new HttpClientErrorException(HttpStatus.BAD_REQUEST, "Missing the required parameter 'policyId' when calling getMinswapPools");
+        }
+        
+        // verify the required parameter 'assetName' is set
+        if (assetName == null) {
+            throw new HttpClientErrorException(HttpStatus.BAD_REQUEST, "Missing the required parameter 'assetName' when calling getMinswapPools");
+        }
+        
+        // create path and map variables
+        final Map<String, Object> uriVariables = new HashMap<String, Object>();
+        uriVariables.put("policyId", policyId);
+        uriVariables.put("assetName", assetName);
+
+        final MultiValueMap<String, String> localVarQueryParams = new LinkedMultiValueMap<String, String>();
+        final HttpHeaders localVarHeaderParams = new HttpHeaders();
+        final MultiValueMap<String, String> localVarCookieParams = new LinkedMultiValueMap<String, String>();
+        final MultiValueMap<String, Object> localVarFormParams = new LinkedMultiValueMap<String, Object>();
+
+        final String[] localVarAccepts = { 
+            "application/json"
+         };
+        final List<MediaType> localVarAccept = apiClient.selectHeaderAccept(localVarAccepts);
+        final String[] localVarContentTypes = {  };
+        final MediaType localVarContentType = apiClient.selectHeaderContentType(localVarContentTypes);
+
+        String[] localVarAuthNames = new String[] {  };
+
+        ParameterizedTypeReference<List<LiquidityPool>> localReturnType = new ParameterizedTypeReference<List<LiquidityPool>>() {};
+        return apiClient.invokeAPI("/cardanoDbSyncApi/minswap/{policyId}/{assetName}", HttpMethod.GET, uriVariables, localVarQueryParams, localVarPostBody, localVarHeaderParams, localVarCookieParams, localVarFormParams, localVarAccept, localVarContentType, localVarAuthNames, localReturnType);
     }
     /**
      * Get all token owners of a policyId, values get updated twice a day

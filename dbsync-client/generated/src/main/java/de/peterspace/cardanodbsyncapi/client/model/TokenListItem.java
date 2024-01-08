@@ -36,7 +36,7 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
   TokenListItem.JSON_PROPERTY_NAME,
   TokenListItem.JSON_PROPERTY_IMAGE
 })
-@jakarta.annotation.Generated(value = "org.openapitools.codegen.languages.JavaClientCodegen", date = "2023-11-27T16:14:58.783574800+01:00[Europe/Berlin]")
+@jakarta.annotation.Generated(value = "org.openapitools.codegen.languages.JavaClientCodegen", date = "2024-01-08T17:32:52.207422400+01:00[Europe/Berlin]")
 public class TokenListItem {
   public static final String JSON_PROPERTY_MA_MINT_ID = "maMintId";
   private Long maMintId;

@@ -9,6 +9,7 @@ All URIs are relative to *http://localhost:8080*
 | [**getEpochStake**](RestHandlerApi.md#getEpochStake) | **GET** /cardanoDbSyncApi/epochStake/{poolHash}/{epoch} | getEpochStake |
 | [**getHandles**](RestHandlerApi.md#getHandles) | **GET** /cardanoDbSyncApi/{stakeAddress}/handles | Get all handles from a stakeAddress |
 | [**getLastMint**](RestHandlerApi.md#getLastMint) | **POST** /cardanoDbSyncApi/lastMint | Get last minted tokens for stakeAddress and policy ids |
+| [**getMinswapPools**](RestHandlerApi.md#getMinswapPools) | **GET** /cardanoDbSyncApi/minswap/{policyId}/{assetName} | Get minswap pools for token |
 | [**getOwners**](RestHandlerApi.md#getOwners) | **GET** /cardanoDbSyncApi/policy/{policyId}/owners | Get all token owners of a policyId, values get updated twice a day |
 | [**getPoolList**](RestHandlerApi.md#getPoolList) | **GET** /cardanoDbSyncApi/poolList | getPoolList |
 | [**getReturnAddress**](RestHandlerApi.md#getReturnAddress) | **GET** /cardanoDbSyncApi/{stakeAddress}/returnAddress | Find the first known address with the same stake address, which should not be mangled |
@@ -347,6 +348,72 @@ No authorization required
 | **200** | OK |  -  |
 
 
+## getMinswapPools
+
+> List&lt;LiquidityPool&gt; getMinswapPools(policyId, assetName)
+
+Get minswap pools for token
+
+### Example
+
+```java
+// Import classes:
+import de.peterspace.cardanodbsyncapi.client.ApiClient;
+import de.peterspace.cardanodbsyncapi.client.ApiException;
+import de.peterspace.cardanodbsyncapi.client.Configuration;
+import de.peterspace.cardanodbsyncapi.client.models.*;
+import de.peterspace.cardanodbsyncapi.client.RestHandlerApi;
+
+public class Example {
+    public static void main(String[] args) {
+        ApiClient defaultClient = Configuration.getDefaultApiClient();
+        defaultClient.setBasePath("http://localhost:8080");
+
+        RestHandlerApi apiInstance = new RestHandlerApi(defaultClient);
+        String policyId = "89267e9a35153a419e1b8ffa23e511ac39ea4e3b00452e9d500f2982"; // String | 
+        String assetName = "436176616c6965724b696e67436861726c6573"; // String | 
+        try {
+            List<LiquidityPool> result = apiInstance.getMinswapPools(policyId, assetName);
+            System.out.println(result);
+        } catch (ApiException e) {
+            System.err.println("Exception when calling RestHandlerApi#getMinswapPools");
+            System.err.println("Status code: " + e.getCode());
+            System.err.println("Reason: " + e.getResponseBody());
+            System.err.println("Response headers: " + e.getResponseHeaders());
+            e.printStackTrace();
+        }
+    }
+}
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **policyId** | **String**|  | |
+| **assetName** | **String**|  | |
+
+### Return type
+
+[**List&lt;LiquidityPool&gt;**](LiquidityPool.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | OK |  -  |
+
+
 ## getOwners
 
 > List&lt;OwnerInfo&gt; getOwners(policyId)
@@ -369,7 +436,7 @@ public class Example {
         defaultClient.setBasePath("http://localhost:8080");
 
         RestHandlerApi apiInstance = new RestHandlerApi(defaultClient);
-        String policyId = "d1edc4dfb4f5f7fb240239ad64a4730c2fd4744eda3c8a7d0fff1f92"; // String | 
+        String policyId = "89267e9a35153a419e1b8ffa23e511ac39ea4e3b00452e9d500f2982"; // String | 
         try {
             List<OwnerInfo> result = apiInstance.getOwners(policyId);
             System.out.println(result);
@@ -937,8 +1004,8 @@ public class Example {
         defaultClient.setBasePath("http://localhost:8080");
 
         RestHandlerApi apiInstance = new RestHandlerApi(defaultClient);
-        String policyId = "d1edc4dfb4f5f7fb240239ad64a4730c2fd4744eda3c8a7d0fff1f92"; // String | 
-        String assetName = "504f524b5958383835"; // String | 
+        String policyId = "89267e9a35153a419e1b8ffa23e511ac39ea4e3b00452e9d500f2982"; // String | 
+        String assetName = "436176616c6965724b696e67436861726c6573"; // String | 
         try {
             TokenDetails result = apiInstance.getTokenDetails(policyId, assetName);
             System.out.println(result);
@@ -1005,7 +1072,7 @@ public class Example {
         RestHandlerApi apiInstance = new RestHandlerApi(defaultClient);
         Long afterMintid = 56L; // Long | 
         Long beforeMintid = 56L; // Long | 
-        String filter = "d1edc4dfb4f5f7fb240239ad64a4730c2fd4744eda3c8a7d0fff1f92"; // String | 
+        String filter = "89267e9a35153a419e1b8ffa23e511ac39ea4e3b00452e9d500f2982"; // String | 
         try {
             List<TokenListItem> result = apiInstance.getTokenList(afterMintid, beforeMintid, filter);
             System.out.println(result);

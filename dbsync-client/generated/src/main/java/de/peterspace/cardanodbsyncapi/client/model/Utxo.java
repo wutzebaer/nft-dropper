@@ -35,7 +35,7 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
   Utxo.JSON_PROPERTY_OWNING_ADDRESS,
   Utxo.JSON_PROPERTY_SOURCE_ADDRESS
 })
-@jakarta.annotation.Generated(value = "org.openapitools.codegen.languages.JavaClientCodegen", date = "2023-11-27T16:14:58.783574800+01:00[Europe/Berlin]")
+@jakarta.annotation.Generated(value = "org.openapitools.codegen.languages.JavaClientCodegen", date = "2024-01-08T17:32:52.207422400+01:00[Europe/Berlin]")
 public class Utxo {
   public static final String JSON_PROPERTY_TX_HASH = "txHash";
   private String txHash;
