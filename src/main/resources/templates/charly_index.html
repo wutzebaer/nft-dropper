@@ -70,6 +70,26 @@
 			<br>
 			<a href="team"> ➔ Charly's servants </a>
 		</p>
+		<p>
+
+        <!-- ADD TO <head> -->
+        <script src="https://unpkg.com/react@18.2/umd/react.production.min.js" crossorigin></script>
+        <script src="https://unpkg.com/react-dom@18.2/umd/react-dom.production.min.js" crossorigin></script>
+        <script type="module" src="https://unpkg.com/@dexhunterio/swaps@0.0.86/lib/umd/swaps.umd.js"></script>
+
+        <!-- ADD TO <body> -->
+        <div id="dexhunter-root"></div>
+        <script type="module">
+            ReactDOM.render(
+                React.createElement(
+                    dexhunterSwap,
+                    {"orderTypes":["SWAP","LIMIT"],"defaultToken":"89267e9a35153a419e1b8ffa23e511ac39ea4e3b00452e9d500f2982436176616c6965724b696e67436861726c6573","colors":{"background":"#0E0F12","containers":"#191B23","subText":"#88919E","mainText":"#FFFFFF","buttonText":"#FFFFFF","accent":"#007DFF"},"theme":"dark","width":450,"partnerCode":"$charlytoken61646472317179706b7561786771643732363572613970716e346c636c777873346839363376637337617563337a637636386c6d3263723361676a65346b7032653363726a617466746b6a747575677333667470777a386c787567776e673866716e6a61666e75da39a3ee5e6b4b0d3255bfef95601890afd80709","partnerName":"$charlytoken"}
+                ),
+                document.getElementById('dexhunter-root')
+            );
+        </script>
+
+		</p>
 	</div>
 
 
