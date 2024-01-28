@@ -142,6 +142,13 @@ a:hover {
 	}
 }
 
+#supply-line {
+	text-align: center;
+	font-family: monospace;
+	word-wrap: break-word;
+	padding: 0 10px;
+}
+
 /* POLICY */
 #policy-line {
 	text-align: center;
@@ -215,7 +222,7 @@ p {
 		width: 50vw;
 	}
 	#button-line .main-button .circle {
-		
+
 	}
 }
 
@@ -417,7 +424,7 @@ p {
 }
 
 .total-holders .number {
-	
+
 }
 
 .countdown {

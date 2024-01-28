@@ -1,7 +1,9 @@
 <!DOCTYPE html>
 <html>
+
 <head>
 </head>
+
 <body>
 	<div th:fragment="header">
 		<p id="logo-line">
@@ -10,7 +12,7 @@
 			</a>
 		</p>
 
-<!--
+		<!--
 		<p class="countdown">
 			<a href="hunter2">
 				Charly hunt season 2 starts in
@@ -18,7 +20,7 @@
 			</a>
 		</p>
  -->
-<!--
+		<!--
 		<p class="countdown">
 			<a href="goldRush">
 				Charly's golden rush starts in
@@ -29,27 +31,47 @@
 	</div>
 
 	<div th:fragment="footer">
+		<p id="supply-line">
+			Total supply:
+			<b><span
+					th:text="${#numbers.formatDecimal(charlyTokenService.getCharlySupply().getTotalSupply(), 0, 'COMMA', 0, 'POINT')}"></span></b>
+			<br>
+			Circulating supply:
+			<b><span
+					th:text="${#numbers.formatDecimal(charlyTokenService.getCharlySupply().getCirculatingSupply(), 0, 'COMMA', 0, 'POINT')}"></span>
+				(<span
+					th:text="${#numbers.formatDecimal((charlyTokenService.getCharlySupply().getCirculatingSupply() * 100.0) / charlyTokenService.getCharlySupply().getTotalSupply(), 1, 'NONE', 0, 'POINT')}"></span>%)</b>
+		</p>
+
+
 		<p id="policy-line">
 			Token Policy ID <br>
-			<a href="https://cardanoscan.io/tokenPolicy/89267e9a35153a419e1b8ffa23e511ac39ea4e3b00452e9d500f2982" target="_blank">89267e9a35153a419e1b8ffa23e511ac39ea4e3b00452e9d500f2982</a>
+			<a href="https://cardanoscan.io/tokenPolicy/89267e9a35153a419e1b8ffa23e511ac39ea4e3b00452e9d500f2982"
+				target="_blank">89267e9a35153a419e1b8ffa23e511ac39ea4e3b00452e9d500f2982</a>
 
 			<br> Certificates of Charlys Kingdom<br>
-			<a href="https://www.jpg.store/collection/381cdcae25c7554340af1e50bef04763850c63c149a49e297bfa262b" target="_blank">381cdcae25c7554340af1e50bef04763850c63c149a49e297bfa262b</a>
+			<a href="https://www.jpg.store/collection/381cdcae25c7554340af1e50bef04763850c63c149a49e297bfa262b"
+				target="_blank">381cdcae25c7554340af1e50bef04763850c63c149a49e297bfa262b</a>
 
 			<br> Collection of fairy tale seven<br>
-			<a href="https://www.jpg.store/collection/be3ee9322ec94d5446bfc1fdc582cb83a0f9bcbcec2ebd928d71175d" target="_blank">be3ee9322ec94d5446bfc1fdc582cb83a0f9bcbcec2ebd928d71175d</a>
+			<a href="https://www.jpg.store/collection/be3ee9322ec94d5446bfc1fdc582cb83a0f9bcbcec2ebd928d71175d"
+				target="_blank">be3ee9322ec94d5446bfc1fdc582cb83a0f9bcbcec2ebd928d71175d</a>
 
 			<br> Charly hood collection<br>
-			<a href="https://www.jpg.store/collection/78125194aefda7242d61099cb700552a0126d2370de3c9105cb23362" target="_blank">78125194aefda7242d61099cb700552a0126d2370de3c9105cb23362</a>
+			<a href="https://www.jpg.store/collection/78125194aefda7242d61099cb700552a0126d2370de3c9105cb23362"
+				target="_blank">78125194aefda7242d61099cb700552a0126d2370de3c9105cb23362</a>
 
 			<br> Charly's golden rush<br>
-			<a href="https://www.jpg.store/collection/c1aa77d9cd7e267df0d0ec138367deb45ce7524eb2f0cc8bdd9c45d4" target="_blank">c1aa77d9cd7e267df0d0ec138367deb45ce7524eb2f0cc8bdd9c45d4</a>
+			<a href="https://www.jpg.store/collection/c1aa77d9cd7e267df0d0ec138367deb45ce7524eb2f0cc8bdd9c45d4"
+				target="_blank">c1aa77d9cd7e267df0d0ec138367deb45ce7524eb2f0cc8bdd9c45d4</a>
 
 			<br> Charly the Merlin special collection<br>
-			<a href="https://www.jpg.store/collection/cfcc4b501af39bd551db684433aefcaa7ebd5dbd6a3db33a11bd8b3a" target="_blank">c1aa77d9cd7e267df0d0ec138367deb45ce7524eb2f0cc8bdd9c45d4</a>
+			<a href="https://www.jpg.store/collection/cfcc4b501af39bd551db684433aefcaa7ebd5dbd6a3db33a11bd8b3a"
+				target="_blank">c1aa77d9cd7e267df0d0ec138367deb45ce7524eb2f0cc8bdd9c45d4</a>
 
 			<br> Jackpot coins collection<br>
-			<a href="https://www.jpg.store/collection/8aa35a5c24b48515f6d48b2897108a443674438930852756ce1ee661" target="_blank">c1aa77d9cd7e267df0d0ec138367deb45ce7524eb2f0cc8bdd9c45d4</a>
+			<a href="https://www.jpg.store/collection/8aa35a5c24b48515f6d48b2897108a443674438930852756ce1ee661"
+				target="_blank">c1aa77d9cd7e267df0d0ec138367deb45ce7524eb2f0cc8bdd9c45d4</a>
 		</p>
 
 
@@ -78,13 +100,16 @@
 			<a target="_blank" href="https://www.wolfcardano.io/">
 				<img th:src="@{/images/wolf token.png}">
 			</a>
-			<a target="_blank" href="https://muesliswap.com/swap?base=.&quote=89267e9a35153a419e1b8ffa23e511ac39ea4e3b00452e9d500f2982.436176616c6965724b696e67436861726c6573">
+			<a target="_blank"
+				href="https://muesliswap.com/swap?base=.&quote=89267e9a35153a419e1b8ffa23e511ac39ea4e3b00452e9d500f2982.436176616c6965724b696e67436861726c6573">
 				<img th:src="@{/images/muesli.png}">
 			</a>
-			<a target="_blank" href="https://app.minswap.org/liquidity?currencySymbolA=&tokenNameA=&currencySymbolB=89267e9a35153a419e1b8ffa23e511ac39ea4e3b00452e9d500f2982&tokenNameB=436176616c6965724b696e67436861726c6573">
+			<a target="_blank"
+				href="https://app.minswap.org/liquidity?currencySymbolA=&tokenNameA=&currencySymbolB=89267e9a35153a419e1b8ffa23e511ac39ea4e3b00452e9d500f2982&tokenNameB=436176616c6965724b696e67436861726c6573">
 				<img th:src="@{/images/minswap.png}">
 			</a>
-			<a target="_blank" href="https://exchange.sundaeswap.finance/#/swap?swap_from=cardano.ada&swap_to=89267e9a35153a419e1b8ffa23e511ac39ea4e3b00452e9d500f2982.436176616c6965724b696e67436861726c6573">
+			<a target="_blank"
+				href="https://exchange.sundaeswap.finance/#/swap?swap_from=cardano.ada&swap_to=89267e9a35153a419e1b8ffa23e511ac39ea4e3b00452e9d500f2982.436176616c6965724b696e67436861726c6573">
 				<img th:src="@{/images/sundae.png}">
 			</a>
 			<a target="_blank" href="https://merkaba-token.io/">
@@ -114,4 +139,5 @@
 
 
 </body>
+
 </html>

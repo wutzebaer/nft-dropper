@@ -120,42 +120,36 @@ public class IndexController {
 	@GetMapping("/nfts")
 	public String nfts(Model model) {
 		addAttributes(model);
-		model.addAttribute("charlyTokenService", charlyTokenService);
 		return "charly_nfts";
 	}
 
 	@GetMapping("/nfts-certificates")
 	public String nftsCertificates(Model model) {
 		addAttributes(model);
-		model.addAttribute("charlyTokenService", charlyTokenService);
 		return "charly_nfts_certificates";
 	}
 
 	@GetMapping("/nfts-hood")
 	public String nftsHood(Model model) {
 		addAttributes(model);
-		model.addAttribute("charlyTokenService", charlyTokenService);
 		return "charly_nfts_hood";
 	}
 
 	@GetMapping("/nfts-seven")
 	public String nftsSeven(Model model) {
 		addAttributes(model);
-		model.addAttribute("charlyTokenService", charlyTokenService);
 		return "charly_nfts_seven";
 	}
 
 	@GetMapping("/nfts-goldRush")
 	public String nftsGoldRush(Model model) {
 		addAttributes(model);
-		model.addAttribute("charlyTokenService", charlyTokenService);
 		return "charly_nfts_goldRush";
 	}
 
 	@GetMapping("/team")
 	public String team(Model model) {
 		addAttributes(model);
-		model.addAttribute("charlyTokenService", charlyTokenService);
 		return "charly_team";
 	}
 
@@ -183,6 +177,7 @@ public class IndexController {
 			model.addAttribute("hunter2End", hunter2End);
 			model.addAttribute("hunter3Start", hunter3Start);
 			model.addAttribute("hunter3End", hunter3End);
+			model.addAttribute("charlyTokenService", charlyTokenService);
 		}
 	}
 
