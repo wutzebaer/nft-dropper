@@ -243,7 +243,7 @@ public class CharlySeller {
 				List<Utxo> reservedCharlyUtxos = new ArrayList<>();
 				while (countCharlyFunds(reservedCharlyUtxos) < totalAmount && !charlyUtxos.isEmpty()) {
 					Utxo reservedUtxo = charlyUtxos.get(0);
-					List<Utxo> reservedUtxos = charlyUtxos.stream().filter(utxo -> utxo.getTxHash().equals(reservedUtxo.getTxHash()) && utxo.getTxIndex() == reservedUtxo.getTxIndex()).collect(Collectors.toList());
+					List<Utxo> reservedUtxos = charlyUtxos.stream().filter(utxo -> utxo.getTxHash().equals(reservedUtxo.getTxHash()) && utxo.getTxIndex().equals(reservedUtxo.getTxIndex())).collect(Collectors.toList());
 					charlyUtxos.removeAll(reservedUtxos);
 					reservedCharlyUtxos.addAll(reservedUtxos);
 				}
@@ -387,14 +387,14 @@ public class CharlySeller {
 		return of -> offerFundings.stream().anyMatch(
 				check -> Objects.equals(check.getMaPolicyId() + "." + check.getMaName(), charlyToken)
 						&& check.getTxHash().equals(of.getTxHash())
-						&& check.getTxIndex() == of.getTxIndex());
+						&& check.getTxIndex().equals(of.getTxIndex()));
 	}
 
 	private Predicate<? super Utxo> isJackpotInput(List<Utxo> offerFundings) {
 		return of -> offerFundings.stream().anyMatch(
 				check -> Objects.equals(check.getMaPolicyId(), jackpotPolicy)
 						&& check.getTxHash().equals(of.getTxHash())
-						&& check.getTxIndex() == of.getTxIndex());
+						&& check.getTxIndex().equals(of.getTxIndex()));
 	}
 
 }
