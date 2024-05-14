@@ -213,8 +213,8 @@ public class CharlySeller {
 							allUsedInputs.addAll(jackpotInputs);
 
 							// send nft and jackpot charlies
-							transactionOutputs.add(buyerAddress + "#jackpot", formatCurrency(charlyTokenPolicyId, charlyTokenAssetName), jackpotCoin.getCharlyTokens());
-							transactionOutputs.add(buyerAddress + "#jackpot", formatCurrency(jackpotPolicy, Hex.encodeHexString(jackpotCoin.getAssetName().getBytes())), 1);
+							transactionOutputs.add(buyerAddress + "#0", formatCurrency(charlyTokenPolicyId, charlyTokenAssetName), jackpotCoin.getCharlyTokens());
+							transactionOutputs.add(buyerAddress + "#0", formatCurrency(jackpotPolicy, Hex.encodeHexString(jackpotCoin.getAssetName().getBytes())), 1);
 
 							// increae amount to gaster
 							totalAmount += jackpotCoin.getCharlyTokens();
@@ -236,7 +236,7 @@ public class CharlySeller {
 				}
 
 				// double output
-				transactionOutputs.add(buyerAddress + "#double", formatCurrency(charlyTokenPolicyId, charlyTokenAssetName), totalAmount);
+				transactionOutputs.add(buyerAddress + "#0", formatCurrency(charlyTokenPolicyId, charlyTokenAssetName), totalAmount);
 				totalAmount *= 2;
 
 				// gather charlyToken inputs
