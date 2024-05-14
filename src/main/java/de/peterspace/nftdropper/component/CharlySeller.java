@@ -65,7 +65,7 @@ public class CharlySeller {
 			entry(1900, new JackpotCoin("CopperJackpotCoin028", 20000000l)),
 			entry(2000, new JackpotCoin("CopperJackpotCoin029", 20000000l)),
 			entry(2100, new JackpotCoin("CopperJackpotCoin033", 20000000l)),
-			entry(2200, new JackpotCoin("SilverJackpotCoin022", 40000000l)),
+			//entry(2200, new JackpotCoin("SilverJackpotCoin022", 40000000l)),
 			entry(2201, new JackpotCoin("SilverJackpotCoin006", 0l)),
 			entry(2300, new JackpotCoin("CHARLYSGOLDENRUSH0004", 0l)),
 			entry(2400, new JackpotCoin("CHARLYSGOLDENRUSH0005", 0l)),
