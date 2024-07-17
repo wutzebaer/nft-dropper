@@ -6,7 +6,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.2.0</version>
+		<version>3.3.1</version>
 		<relativePath /> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>de.peterspace</groupId>
@@ -16,10 +16,10 @@
 	<description>Webapp for drop nft collection</description>
 	<properties>
 		<java.version>17</java.version>
-		<springdoc.version>2.2.0</springdoc.version>
-		<guava.version>32.1.3-jre</guava.version>
-		<json.version>20231013</json.version>
-		<commons-io.version>2.15.0</commons-io.version>
+		<springdoc.version>2.6.0</springdoc.version>
+		<guava.version>33.2.1-jre</guava.version>
+		<json.version>20240303</json.version>
+		<commons-io.version>2.16.1</commons-io.version>
 		<java-ipfs-http-client.version>v1.3.3</java-ipfs-http-client.version>
 	</properties>
 
