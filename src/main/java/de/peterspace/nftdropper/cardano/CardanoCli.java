@@ -91,15 +91,13 @@ public class CardanoCli {
 
 		ArrayList<String> cmd = new ArrayList<String>();
 
+		cmd.add("latest");
 		cmd.add("transaction");
 		cmd.add("calculate-min-required-utxo");
 
 		cmd.add("--protocol-params-file");
 		cmd.add("protocol.json");
 
-		if ("Babbage".equals(cardanoNode.getEra())) {
-			cmd.add("--babbage-era");
-		}
 
 		cmd.add("--tx-out");
 		cmd.add(normalizedAddressValue);
@@ -254,7 +252,7 @@ public class CardanoCli {
 		Map<String, String> inputFiles = new HashMap<>();
 		ArrayList<String> cmd = new ArrayList<String>();
 
-		cmd.add("conway");
+		cmd.add("latest");
 		cmd.add("transaction");
 		cmd.add("build");
 
@@ -349,7 +347,7 @@ public class CardanoCli {
 
 		Transaction transaction = new Transaction();
 		String[] feeStringChunks = txResponse[0].split(" ");
-		transaction.setFee(Long.valueOf(feeStringChunks[feeStringChunks.length - 1]));
+		transaction.setFee(Long.valueOf(feeStringChunks[feeStringChunks.length - 2]));
 		transaction.setInputs(transactionInputs.toString());
 		transaction.setOutputs(transactionOutputs.toString());
 		if (metaData != null) {
@@ -380,6 +378,7 @@ public class CardanoCli {
 		String signedFilename = filename("signed");
 
 		ArrayList<String> cmd = new ArrayList<String>();
+		cmd.add("latest");
 		cmd.add("transaction");
 		cmd.add("sign");
 
@@ -407,6 +406,7 @@ public class CardanoCli {
 		try {
 
 			ArrayList<String> cmd = new ArrayList<String>();
+			cmd.add("latest");
 			cmd.add("transaction");
 			cmd.add("submit");
 
@@ -430,6 +430,7 @@ public class CardanoCli {
 	private String getTxId(Transaction mintTransaction) throws Exception {
 		String filename = filename("raw");
 		ArrayList<String> cmd = new ArrayList<String>();
+		cmd.add("latest");
 		cmd.add("transaction");
 		cmd.add("txid");
 		cmd.add("--tx-body-file");

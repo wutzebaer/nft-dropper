@@ -15,8 +15,6 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class CardanoNode {
 
-	@Getter
-	private String era;
 
 	private final CardanoCliDockerBridge cardanoCliDockerBridge;
 
@@ -30,7 +28,6 @@ public class CardanoNode {
 				double syncProgress = tip.getDouble("syncProgress");
 				log.info("Synced {}", syncProgress);
 				if (syncProgress == 100) {
-					era = tip.getString("era");
 					break;
 				}
 			} catch (Exception e) {
